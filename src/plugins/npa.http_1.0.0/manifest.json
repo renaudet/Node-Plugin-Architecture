@@ -1,0 +1,25 @@
+{
+  "id": "npa.http",
+  "name": "HTTP endpoint provider",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "http": {
+  	"port": 9080,
+  	"secure": false
+  },
+  "requires": [
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.http.logger",
+  		"dir": "http"
+  	}
+  ],
+  "provides": [
+  	{"id": "npa.http.router"},
+  	{"id": "npa.http.handler"},
+  	{"id": "npa.http.static"}
+  ]
+}

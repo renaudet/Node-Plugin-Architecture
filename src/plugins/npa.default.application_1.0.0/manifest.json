@@ -1,0 +1,44 @@
+{
+  "id": "npa.default.application",
+  "name": "Default application for NPA",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "root","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.http","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.default.application.logger",
+  		"dir": "myApp"
+  	},
+  	{
+  		"point": "npa.application",
+  		"id": "npa.default.application.application",
+  		"type": "myApp"
+  	},
+  	{
+  		"point": "npa.http.router",
+  		"id": "npa.default.application.router",
+  		"path": "/myAppApis"
+  	},
+  	{
+  		"point": "npa.http.static",
+  		"id": "npa.default.application.htdocs",
+  		"path": "/myApp",
+  		"localDir": "htdocs"
+  	},
+  	{
+  		"point": "npa.http.handler",
+  		"id": "npa.default.application.hello.handler",
+  		"router": "npa.default.application.router",
+  		"method": "GET",
+  		"schema": "/sayHello",
+  		"handler": "helloRequestHandler"
+  	}
+  ],
+  "provides": [
+  ]
+}

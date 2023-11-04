@@ -1,0 +1,18 @@
+{
+  "id": "npa.rest",
+  "name": "REST client provider",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.rest.logger",
+  		"dir": "rest"
+  	}
+  ],
+  "provides": [
+  ]
+}

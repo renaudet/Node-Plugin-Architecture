@@ -1,0 +1,13 @@
+{
+  "id": "npa.logging",
+  "name": "Logging provider",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  ],
+  "extends": [
+  ],
+  "provides": [
+  	{"id": "npa.log.provider"}
+  ]
+}

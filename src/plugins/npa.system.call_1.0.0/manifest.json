@@ -1,0 +1,18 @@
+{
+  "id": "npa.system.call",
+  "name": "System call support for NPA",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.system.call.logger",
+  		"dir": "system.call"
+  	}
+  ],
+  "provides": [
+  ]
+}

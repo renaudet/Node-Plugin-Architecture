@@ -1,0 +1,21 @@
+{
+  "id": "root",
+  "name": "NPA root plugin",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.logger",
+  		"dir": "root"
+  	}
+  ],
+  "provides": [
+  	{
+  		"id": "npa.application"
+  	}
+  ]
+}
