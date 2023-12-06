@@ -7,6 +7,10 @@
 		{
 			"id": "myApp",
 			"location": "./myAppPlugins"
+		},
+		{
+			"id": "test",
+			"location": "C:/workspaces/IDE2021bis/NPA Test/src"
 		}
 	]
 }

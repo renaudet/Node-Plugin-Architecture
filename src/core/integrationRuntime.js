@@ -12,6 +12,7 @@ var fs = require('fs');
 	extensionPoints = {};
 	constructor(runtimeConfiguration){
 		this.config = runtimeConfiguration;
+		this.config.installLocation = process.cwd();
 	}
 	discover(){
 		for(var i=0;i<this.config.sites.length;i++){
@@ -29,7 +30,7 @@ var fs = require('fs');
 		this.createPluginMap();
 	}
 	loadPluginManifest(path){
-		var manifestFilename = '../'+path+'/'+PLUGIN_MANIFEST_NAME;
+		var manifestFilename = path.replace(/\.\//,'../')+'/'+PLUGIN_MANIFEST_NAME;
 		try{
 			var manifest = require(manifestFilename);
 			if(typeof this.map[manifest.id]=='undefined'){
@@ -108,7 +109,7 @@ var fs = require('fs');
 	}
 	loadPlugin(mapEntry){
 		try{
-			var pluginImpl = require('../'+mapEntry.path+'/'+mapEntry.manifest.plugin);
+			var pluginImpl = require(mapEntry.path.replace(/\.\//,'../')+'/'+mapEntry.manifest.plugin);
 			pluginImpl.configure(mapEntry.path,mapEntry.manifest,this);
 			this.map[pluginImpl.getId()] = pluginImpl;
 		}catch(lpe){
