@@ -9,16 +9,11 @@ var plugin = new Plugin();
 plugin.applications = {};
 
 plugin.plug = function(extender,extensionPointConfig){
-	var appType = this.applications[extensionPointConfig.type];
-	if(typeof appType=='undefined'){
-		appType = [];
-		this.applications[extensionPointConfig.type] = appType;
-	}
-	appType.push(extender);
+	this.applications[extensionPointConfig.name] = extender;
 }
 
-plugin.getApplications = function(type){
-	return this.applications[type];
+plugin.getApplication = function(name){
+	return this.applications[name];
 }
 
 module.exports = plugin;

@@ -12,22 +12,22 @@
   	{
   		"point": "npa.log.provider",
   		"id": "npa.default.application.logger",
-  		"dir": "myApp"
+  		"dir": "default"
   	},
   	{
   		"point": "npa.application",
   		"id": "npa.default.application.application",
-  		"type": "myApp"
+  		"name": "default"
   	},
   	{
   		"point": "npa.http.router",
   		"id": "npa.default.application.router",
-  		"path": "/myAppApis"
+  		"path": "/defaultRestApis"
   	},
   	{
   		"point": "npa.http.static",
   		"id": "npa.default.application.htdocs",
-  		"path": "/myApp",
+  		"path": "/default",
   		"localDir": "htdocs"
   	},
   	{

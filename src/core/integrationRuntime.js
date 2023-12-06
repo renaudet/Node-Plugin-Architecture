@@ -6,20 +6,26 @@ const PLUGIN_MANIFEST_NAME = 'manifest.json';
 var fs = require('fs');  
  
  class Integrator{
-	pluginFolder = null;
+	config = null;
+	//pluginFolder = null;
 	map = {};
 	plugins = null;
 	extensionPoints = {};
 	constructor(runtimeConfiguration){
-		this.pluginFolder = runtimeConfiguration.pluginFolder;
+		//this.pluginFolder = runtimeConfiguration.pluginFolder;
+		this.config = runtimeConfiguration;
 	}
 	discover(){
-		var entries = fs.readdirSync(this.pluginFolder,{withFileTypes: true});
-		for(var i=0;i<entries.length;i++){
-			var dirEntry = entries[i];
-			if(dirEntry.isDirectory()){
-				var path = this.pluginFolder+'/'+dirEntry.name;
-				this.loadPluginManifest(path);
+		for(var i=0;i<this.config.sites.length;i++){
+			let site = this.config.sites[i];
+			console.log('discovering installation site "'+site.id+'"...');
+			let entries = fs.readdirSync(site.location,{withFileTypes: true});
+			for(var j=0;j<entries.length;j++){
+				var dirEntry = entries[j];
+				if(dirEntry.isDirectory()){
+					var path = site.location+'/'+dirEntry.name;
+					this.loadPluginManifest(path);
+				}
 			}
 		}
 		this.createPluginMap();

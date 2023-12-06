@@ -1,3 +1,13 @@
 { 
-	"pluginFolder": "plugins"
+	"pluginFolder": "plugins",
+	"sites": [
+		{
+			"id": "default",
+			"location": "./plugins"
+		},
+		{
+			"id": "myApp",
+			"location": "./myAppPlugins"
+		}
+	]
 }

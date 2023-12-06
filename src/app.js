@@ -71,9 +71,8 @@ integrator.discover();
 integrator.start(function(){
 	console.log('all plugins started!');
 	var root = integrator.getPlugin('root');
-	var apps = root.getApplications(process.env[ENV_APPLICATION]);
-	if(typeof apps!='undefined' && apps.length>0){
-		var application = apps[0]; // take first one available for now!
-		application.initialize();
+	var app = root.getApplication(process.env[ENV_APPLICATION]);
+	if(typeof app!='undefined'){
+		app.initialize();
 	}
 });

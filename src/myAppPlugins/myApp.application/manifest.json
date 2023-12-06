@@ -1,0 +1,44 @@
+{
+  "id": "myApp.application",
+  "name": "Application module for myApp",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "root","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.http","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "myApp.application.logger",
+  		"dir": "myApp"
+  	},
+  	{
+  		"point": "npa.application",
+  		"id": "myApp.application.application",
+  		"name": "myApp"
+  	},
+  	{
+  		"point": "npa.http.router",
+  		"id": "myApp.application.router",
+  		"path": "/myAppApis"
+  	},
+  	{
+  		"point": "npa.http.static",
+  		"id": "myApp.application.htdocs",
+  		"path": "/myApp",
+  		"localDir": "htdocs"
+  	},
+  	{
+  		"point": "npa.http.handler",
+  		"id": "myApp.application.hello.handler",
+  		"router": "myApp.application.router",
+  		"method": "GET",
+  		"schema": "/sayHello",
+  		"handler": "helloRequestHandler"
+  	}
+  ],
+  "provides": [
+  ]
+}
