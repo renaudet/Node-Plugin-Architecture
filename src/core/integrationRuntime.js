@@ -7,12 +7,10 @@ var fs = require('fs');
  
  class Integrator{
 	config = null;
-	//pluginFolder = null;
 	map = {};
 	plugins = null;
 	extensionPoints = {};
 	constructor(runtimeConfiguration){
-		//this.pluginFolder = runtimeConfiguration.pluginFolder;
 		this.config = runtimeConfiguration;
 	}
 	discover(){
