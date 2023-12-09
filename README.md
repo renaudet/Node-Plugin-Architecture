@@ -127,7 +127,7 @@ To run the application, we use the app.js launcher using a command-line like:
 
     $> node app.js --port 9080 --application sayHello
 
-##Writing a plugin for NPA
+## Writing a plugin for NPA
     
 The plugin itself is a pure node.js module, with its usual require statements and export declaration.
 
