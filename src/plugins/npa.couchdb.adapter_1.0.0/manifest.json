@@ -1,0 +1,25 @@
+{
+  "id": "npa.couchdb.adapter",
+  "name": "CouchDB support for NPA",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "npa.core","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.couchdb.adapter.logger",
+  		"dir": "couchdb"
+  	},
+  	{
+  		"point": "npa.core.service",
+  		"id": "npa.couchdb.adapter.service",
+  		"service": "couchdb"
+  	}
+  ],
+  "provides": [
+  	{"id": "npa.couchdb.adapter.datasource"}
+  ]
+}
