@@ -7,6 +7,14 @@
 		{
 			"id": "myApp",
 			"location": "./myAppPlugins"
+		},
+		{
+			"id": "npa-ui-tools",
+			"location": "D:/Git/npa-ui-tools/src/plugins"
+		},
+		{
+			"id": "npa-test",
+			"location": "D:/Eclipse/workspaces/dev/npa.test.application/src"
 		}
 	]
 }

@@ -8,18 +8,25 @@
   	"secure": false
   },
   "requires": [
-  	{"type": "plugin","id": "npa.logging","version": "1.0.0"}
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.core","version": "1.0.0"}
   ],
   "extends": [
   	{
   		"point": "npa.log.provider",
   		"id": "npa.http.logger",
   		"dir": "http"
+  	},
+  	{
+  		"point": "npa.core.service",
+  		"id": "npa.http.service",
+  		"service": "http"
   	}
   ],
   "provides": [
   	{"id": "npa.http.router"},
   	{"id": "npa.http.handler"},
-  	{"id": "npa.http.static"}
+  	{"id": "npa.http.static"},
+  	{"id": "npa.http.home"}
   ]
 }

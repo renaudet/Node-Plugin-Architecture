@@ -12,6 +12,8 @@ const ENV_NAME = 'APPLICATION_NAME';
 var plugin = new Plugin();
 plugin.endpoint = null;
 plugin.routers = {};
+plugin.commands = [];
+plugin.homePage = null;
 
 plugin.beforePlugExtensions = function(){
 	this.endpoint = express();
@@ -22,37 +24,86 @@ plugin.beforePlugExtensions = function(){
 
 plugin.plug = function(extender,extensionPointConfig){
 	if('npa.http.router'==extensionPointConfig.point){
-		this.routers[extensionPointConfig.id] = express.Router();
-		this.endpoint.use(extensionPointConfig.path,this.routers[extensionPointConfig.id]);
+		var command = {};
+		command.execute = function(){
+			plugin.info('adding express router for path '+extensionPointConfig.path);
+			plugin.routers[extensionPointConfig.id] = express.Router();
+			plugin.endpoint.use(extensionPointConfig.path,plugin.routers[extensionPointConfig.id]);
+		}
+		this.commands.push(command);
 	}
 	if('npa.http.handler'==extensionPointConfig.point){
-		var router = this.routers[extensionPointConfig.router];
-		if(typeof router!="undefined"){
-			if('GET'==extensionPointConfig.method){
-				router.get(extensionPointConfig.schema,extender[extensionPointConfig.handler]);
-				this.info('adding a GET HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
+		if('GET'==extensionPointConfig.method){
+			var command = {};
+			command.execute = function(){
+				plugin.info('adding a GET HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
+				var router = plugin.routers[extensionPointConfig.router];
+				if(typeof router!="undefined"){
+					router.get(extensionPointConfig.schema,extender[extensionPointConfig.handler]);
+				}else{
+					this.error('router '+extensionPointConfig.router+' not found for extension point '+extensionPointConfig.id);
+				}
 			}
-			if('POST'==extensionPointConfig.method){
-				router.post(extensionPointConfig.schema,extender[extensionPointConfig.handler]);
-				this.info('adding a POST HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
+			this.commands.push(command);
+		}
+		if('POST'==extensionPointConfig.method){
+			var command = {};
+			command.execute = function(){
+				plugin.info('adding a POST HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
+				var router = plugin.routers[extensionPointConfig.router];
+				if(typeof router!="undefined"){
+					router.post(extensionPointConfig.schema,extender[extensionPointConfig.handler]);
+				}else{
+					this.error('router '+extensionPointConfig.router+' not found for extension point '+extensionPointConfig.id);
+				}
 			}
-			if('PUT'==extensionPointConfig.method){
-				router.put(extensionPointConfig.schema,extender[extensionPointConfig.handler]);
-				this.info('adding a PUT HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
+			this.commands.push(command);
+		}
+		if('PUT'==extensionPointConfig.method){
+			var command = {};
+			command.execute = function(){
+				plugin.info('adding a PUT HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
+				var router = plugin.routers[extensionPointConfig.router];
+				if(typeof router!="undefined"){
+					router.put(extensionPointConfig.schema,extender[extensionPointConfig.handler]);
+				}else{
+					this.error('router '+extensionPointConfig.router+' not found for extension point '+extensionPointConfig.id);
+				}
 			}
-			if('DELETE'==extensionPointConfig.method){
-				router.delete(extensionPointConfig.schema,extender[extensionPointConfig.handler]);
-				this.info('adding a DELETE HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
+			this.commands.push(command);
+		}
+		if('DELETE'==extensionPointConfig.method){
+			var command = {};
+			command.execute = function(){
+				plugin.info('adding a DELETE HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
+				var router = plugin.routers[extensionPointConfig.router];
+				if(typeof router!="undefined"){
+					router.delete(extensionPointConfig.schema,extender[extensionPointConfig.handler]);
+				}else{
+					this.error('router '+extensionPointConfig.router+' not found for extension point '+extensionPointConfig.id);
+				}
 			}
-		}else{
-			this.error('router '+extensionPointConfig.router+' not found for extension point '+extensionPointConfig.id);
+			this.commands.push(command);
 		}
 	}
 	if('npa.http.static'==extensionPointConfig.point){
 		var path = extensionPointConfig.path;
 		var dir = 	extender.getLocalDirectory()+'/'+extensionPointConfig.localDir;
-		this.info('adding static content endpoint "'+path+'" from directory '+dir);
-		this.endpoint.use(path, express.static(dir));
+		var command = {};
+		command.execute = function(){
+			plugin.info('adding static content endpoint "'+path+'" from directory '+dir);
+			var options = {};
+			if(plugin.homePage!=null){
+				options.index = false;
+				console.log('-index page will be '+options.index);
+			}
+			plugin.endpoint.use(path, express.static(dir,options));
+		}
+		this.commands.push(command);
+	}
+	if('npa.http.home'==extensionPointConfig.point){
+		this.info('adding Home page redirectiorn to '+extensionPointConfig.uri);
+		this.homePage = extensionPointConfig.uri;
 	}
 }
 
@@ -62,6 +113,17 @@ plugin.start = function(then){
 }
 
 plugin.startListener = function(){
+	for(var i=0;i<this.commands.length;i++){
+		var command = this.commands[i];
+		try{
+			command.execute();
+		}catch(t){}
+	}
+	if(this.homePage!=null){
+		this.endpoint.get('/',function(req, res){
+			res.redirect(plugin.homePage);
+		});
+	}
 	var port = this.config.http.port;
 	if(typeof process.env[ENV_PORT]!='undefined'){
 		port = process.env[ENV_PORT];
