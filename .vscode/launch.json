@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Start the NPA Test Server",
+            "program": "${workspaceFolder}\\src\\app.js",
+            "request": "launch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "cwd": "${workspaceFolder}\\src",
+            "args": ["--application","myApp","--logs","C:/tmp/NPA","--level","fine","--port","9080","--name","NPA Server"]
+        }
+    ]
+}
