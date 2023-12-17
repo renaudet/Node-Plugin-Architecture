@@ -10,7 +10,7 @@
             ],
             "type": "node",
             "cwd": "${workspaceFolder}\\src",
-            "args": ["--application","myApp","--logs","C:/tmp/NPA","--level","fine","--port","9080","--name","NPA Server"]
+            "args": ["--application","test","--logs","C:/tmp/NPA","--level","fine","--port","9090","--name","NPA Test Server"]
         }
     ]
 }

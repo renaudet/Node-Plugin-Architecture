@@ -73,9 +73,15 @@ var fs = require('fs');
 				if('plugin'==requiredDep.type){
 					var mapEntry = this.map[requiredDep.id];
 					if(typeof mapEntry=='undefined'){
+						console.log('Unresolved dependency found for plugin '+pluginId+': '+requiredDep.id);
 						pluginEntry.resolved = false;
 					}else{
-						pluginEntry.requires[requiredDep.id] = mapEntry;
+						if(this.matchDependency(requiredDep.version,mapEntry.manifest.version)){
+							pluginEntry.requires[requiredDep.id] = mapEntry;
+						}else{
+							console.log('Unmatched dependency found for plugin '+pluginId+': '+requiredDep.id+' required version is '+requiredDep.version+' - found '+mapEntry.manifest.version);
+							pluginEntry.resolved = false;
+						}
 					}
 				}
 			}
@@ -163,6 +169,24 @@ var fs = require('fs');
 			}
 		}
 		return 0;
+	}
+	matchDependency(requiredVersion,availableVersion){
+		if(requiredVersion.startsWith('=')){
+			let required = requiredVersion.replace(/=/g,'');
+			if(this.compareVersion(availableVersion,required)==0){
+				return true;
+			}
+		}else
+		if(requiredVersion.startsWith('^')){
+			let required = requiredVersion.replace(/\^/g,'');
+			if(this.compareVersion(availableVersion,required)>0){
+				return true;
+			}
+		}else
+		if(this.compareVersion(availableVersion,requiredVersion)>=0){
+			return true;
+		}
+		return false;
 	}
 	registerExtensionPoints(plugin){
 		var pluginConfig = plugin.getConfig();
