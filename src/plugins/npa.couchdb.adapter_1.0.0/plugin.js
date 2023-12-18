@@ -66,7 +66,7 @@ plugin.query = function(reference,query,callback){
 	})
 	.catch(function (error) {
 		if(error.response){
-			plugin.error(JSON.stringify(error.response,null,'\t'));
+			plugin.error(JSON.stringify(error.response.data,null,'\t'));
 			plugin.debug('<-query()');
 			callback('Internal error: '+error.response.data.reason,null);
 		}else{
