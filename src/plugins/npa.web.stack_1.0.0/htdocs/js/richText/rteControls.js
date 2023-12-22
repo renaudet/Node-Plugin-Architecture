@@ -1,6 +1,6 @@
 function forumUploadImg(id){
 	window.activeEditorId = id;
-	var popupWindow = window.open("/js/richText//js/richText/rte/uploadPopup.html","uploadPopup","directories=no,location=no,menubar=no,resizable=no,scrollbars=no,status=no,toolbar=no,width=450,height=200");
+	var popupWindow = window.open("/js/richText/rte/uploadPopup.html","uploadPopup","directories=no,location=no,menubar=no,resizable=no,scrollbars=no,status=no,toolbar=no,width=450,height=200");
 }
 var newDivId = 0;
 function getSelectionAsHtml(win) {
