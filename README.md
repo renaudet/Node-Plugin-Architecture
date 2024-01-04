@@ -148,4 +148,105 @@ the plugin is expected to follow the interface requirement for the extension poi
 	}
 
 In our code sample, the  _helloRequestHandler_  prototype follows the rules set by the  _npa.http.handler_  extension point defined by the  _npa.http_  plugin, which itself follow the rules set by the  `request`  framework. 
-    
+
+## Base Plugins documentation
+
+### NPA Core / npa.core
+
+This is the root plugin for the NPA plugin-tree architecture. It provides two extension points:
+
+#### npa.core.application
+
+Extensions for this extension point should provide a `name` in the extension declaration:
+
+	{
+		"point": "npa.core.application",
+		"id": "npa.ui.test.application.application",
+		"name": "test"
+	}
+
+The plugin itself should provide an `initialize()`  method without arguments. The method will be called by the launcher if the `--application <name>` launcher's argument matches this extension's name
+
+Several  _application_  can be contributed at the same time, but only one will be initialized
+
+#### npa.core.service
+
+Extensions for this extension point should provide a `service` ID in the extension declaration:
+
+	{
+		"point": "npa.core.service",
+		"id": "npa.http.service",
+		"service": "http"
+	}
+  	
+At runtime, any plugin will be able to use this service interface by calling the Core's  _getService()_  method:
+
+	let core = this.runtime.getPlugin('npa.core');
+	let httpService = core.getService('http');
+
+This way, the service consumer is independant from the service provider. It doesn't require to know anything about the **Express** stuff used for its implementation
+
+### npa.http
+
+This is the HTTP provider for NPA. Based on **Express**, it provides exension points to easily plug routers, handlers or static content.
+
+Extension points:
+
+#### npa.http.router
+
+Extensions for this extension point should provide a `path` in their declaration:
+
+	{
+		"point": "npa.http.router",
+		"id": "npa.ui.test.application.router",
+		"path": "/test"
+	} 
+	
+Contributed **handlers** may refer to a specific router by using its id (see example below)
+
+#### npa.http.handler
+
+Callback handlers are externally configured through the `manifest.json`  file:
+
+	{
+		"point": "npa.http.handler",
+		"id": "npa.ui.test.application.query.record.handler",
+		"router": "npa.ui.test.application.router",
+		"method": "POST",
+		"schema": "/getRecords",
+		"handler": "getRecordsHandler"
+	}
+	
+In this example, the  _npa.ui.test.application.query.record.handler_  handler contributes a POST callback named  _getRecordsHandler(req,res)_  to the router  _npa.ui.test.application.router_ . 
+
+As the router provided the `/test` path, this handler will be associated with the `/test/getRecords` uri
+
+#### npa.http.static
+
+Extensions for this extension point should provide a `path` and a `localDir`  in their declaration:
+
+	{
+		"point": "npa.http.static",
+		"id": "npa.ui.test.application.htdocs",
+		"path": "/static",
+		"localDir": "htdocs"
+	}
+
+**Express** will associate the static content located in this local directory with the provided `path` prefix.
+
+The local directory is a subdirectory from the contributon plugin's own directory. Its name is **not** used in the resulting URIs.
+
+For example, a file  _myGifFile.gif_  located in the  _img_  subdirectory of the  _htdocs_  directory configured above would be refered to as `/static/img/myGifFile.gif`
+
+#### npa.http.home
+
+To redirect the unspecified uri '/' to a given uri, a plugin may provide an extension to `npa.http.home` 
+
+	{
+		"point": "npa.http.home",
+		"id": "npa.ui.test.application.home",
+		"uri": "/static/home.html"
+	}
+
+This is not the same mechanism as a  _default page_  but it is usefull to redirect a default request to an application Home page (like index.html)
+  	  
