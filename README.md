@@ -52,39 +52,41 @@ The plugin plugs itself to the framework using a manifest file written in JSON.
 
 ##### manifest.json:
 
-    {  
-      "id": "sayHello",  
-      "name": "Say Hello Application",  
-      "version": "1.0.0",  
-      "plugin": "plugin.js",  
-      "requires": [  
-      	{"type": "plugin","id": "root","version": "1.0.0"},  
-      	{"type": "plugin","id": "npa.http","version": "1.0.0"}  
-      ],  
-      "extends": [  
-      	{  
-      		"point": "npa.application",  
-      		"id": "sayHello.application",  
-      		"name": "sayHello"  
-      	},  
-      	{  
-      		"point": "npa.http.router",  
-      		"id": "sayHello.application.router",  
-      		"path": "/myApp"  
-      	},  
-      	{  
-      		"point": "npa.http.handler",  
-      		"id": "sayHello.application.hello.handler",  
-      		"router": "sayHello.application.router",  
-      		"method": "GET",  
-      		"schema": "/sayHello",  
-      		"handler": "sayHelloRequestHandler"  
-      	}  
-      ],  
-      "provides": [  
-      ]  
-    }  
-
+```json
+{  
+  "id": "sayHello",  
+  "name": "Say Hello Application",  
+  "version": "1.0.0",  
+  "plugin": "plugin.js",  
+  "requires": [  
+  	{"type": "plugin","id": "root","version": "1.0.0"},  
+  	{"type": "plugin","id": "npa.http","version": "1.0.0"}  
+  ],  
+  "extends": [  
+  	{  
+  		"point": "npa.application",  
+  		"id": "sayHello.application",  
+  		"name": "sayHello"  
+  	},  
+  	{  
+  		"point": "npa.http.router",  
+  		"id": "sayHello.application.router",  
+  		"path": "/myApp"  
+  	},  
+  	{  
+  		"point": "npa.http.handler",  
+  		"id": "sayHello.application.hello.handler",  
+  		"router": "sayHello.application.router",  
+  		"method": "GET",  
+  		"schema": "/sayHello",  
+  		"handler": "sayHelloRequestHandler"  
+  	}  
+  ],  
+  "provides": [  
+  ]  
+}
+```
+  
 ##### plugin.js:
 
 ```javascript
