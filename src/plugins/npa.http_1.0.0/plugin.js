@@ -112,7 +112,7 @@ plugin.start = function(then){
 	then();
 }
 
-plugin.startListener = function(){
+plugin.startListener = function(requiredPort=null){
 	for(var i=0;i<this.commands.length;i++){
 		var command = this.commands[i];
 		try{
@@ -124,7 +124,10 @@ plugin.startListener = function(){
 			res.redirect(plugin.homePage);
 		});
 	}
-	var port = this.config.http.port;
+	var port = this.config.http.port; //default value
+	if(requiredPort!=null){
+		port = requiredPort;
+	}else
 	if(typeof process.env[ENV_PORT]!='undefined'){
 		port = process.env[ENV_PORT];
 	}

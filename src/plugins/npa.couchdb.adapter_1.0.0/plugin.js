@@ -10,6 +10,7 @@ const PROTOCOL = 'http://';
 
 var plugin = new Plugin();
 plugin.datasources = {};
+plugin.baseUrlCache = {};
 
 plugin.plug = function(extender,extensionPointConfig){
 	if('npa.couchdb.adapter.datasource'==extensionPointConfig.point){
@@ -26,18 +27,37 @@ plugin.getDatasource = function(ref){
 }
 
 plugin.makeBaseUrl = function(ds){
-	var url = PROTOCOL;
-	if(typeof ds.username!='undefined' && typeof ds.password!='undefined'){
-		url += ds.username+':'+ds.password+'@';
-	}
-	url += ds.hostname;
-	if(typeof ds.port!='undefined'){
-		url += ':'+ds.port;
+	if(typeof this.baseUrlCache[ds.reference]!='undefined'){
+		return this.baseUrlCache[ds.reference];
 	}else{
-		url += ':5984';
+		var url = PROTOCOL;
+		if(typeof ds.environment!='undefined' && typeof ds.environment.username!='undefined' && typeof ds.environment.password!='undefined'){
+			url += process.env[ds.environment.username]+':'+process.env[ds.environment.password]+'@';
+		}else
+		if(typeof ds.username!='undefined' && typeof ds.password!='undefined'){
+			url += ds.username+':'+ds.password+'@';
+		}
+		if(typeof ds.environment!='undefined' && typeof ds.environment.hostname!='undefined'){
+			url += process.env[ds.environment.hostname];
+		}else{
+			url += ds.hostname;
+		}
+		if(typeof ds.environment!='undefined' && typeof ds.environment.port!='undefined'){
+			url += ':'+process.env[ds.environment.port];
+		}else
+		if(typeof ds.port!='undefined'){
+			url += ':'+ds.port;
+		}else{
+			url += ':5984';
+		}
+		if(typeof ds.environment!='undefined' && typeof ds.environment.dbname!='undefined'){
+			url += '/'+process.env[ds.environment.dbname];
+		}else{
+			url += '/'+ds.dbname;
+		}
+		this.baseUrlCache[ds.reference] = url;
+		return url;
 	}
-	url += '/'+ds.dbname;
-	return url;
 }
 
 /*
