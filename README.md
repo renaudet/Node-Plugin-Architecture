@@ -181,8 +181,10 @@ Extensions for this extension point should provide a `service` ID in the extensi
   	
 At runtime, any plugin will be able to use this service interface by calling the Core's  _getService()_  method:
 
-	let core = this.runtime.getPlugin('npa.core');
-	let httpService = core.getService('http');
+```javascript
+let core = this.runtime.getPlugin('npa.core');
+let httpService = core.getService('http');
+```
 
 This way, the service consumer is independant from the service provider. It doesn't require to know anything about the **Express** stuff used for its implementation
 
@@ -240,7 +242,7 @@ For example, a file  _myGifFile.gif_  located in the  _img_  subdirectory of the
 
 #### npa.http.home
 
-To redirect the unspecified uri '/' to a given uri, a plugin may provide an extension to `npa.http.home` 
+To redirect the unspecified uri '/' to a given uri, a plugin may provide an extension to `npa.http.home`
 
 	{
 		"point": "npa.http.home",
