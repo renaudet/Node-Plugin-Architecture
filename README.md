@@ -113,18 +113,20 @@ Also, the mapping between the callback and the URL schema is now externalized in
 
 The plugin itself is a subdirectory within the plugin main directory specified in an install site location defined in the appConfig.json file.
 
-	{ 
-		"sites": [
-			{
-				"id": "default",
-				"location": "./plugins"
-			},
-			{
-				"id": "myApp",
-				"location": "./myAppPlugins"
-			}
-		]
-	}
+```json
+{ 
+	"sites": [
+		{
+			"id": "default",
+			"location": "./plugins"
+		},
+		{
+			"id": "myApp",
+			"location": "./myAppPlugins"
+		}
+	]
+}
+```
 
 In the above example, there are two of them: default and myApp. Our sayHello application is delivered as a plugin from the myApp installation site.
 
@@ -173,11 +175,13 @@ This is the root plugin for the NPA plugin-tree architecture. It provides two ex
 
 Extensions for this extension point should provide a `name` in the extension declaration:
 
-	{
-		"point": "npa.core.application",
-		"id": "npa.ui.test.application.application",
-		"name": "test"
-	}
+```json
+{
+	"point": "npa.core.application",
+	"id": "npa.ui.test.application.application",
+	"name": "test"
+}
+```
 
 The plugin itself should provide an `initialize()`  method without arguments. The method will be called by the launcher if the `--application <name>` launcher's argument matches this extension's name
 
@@ -187,11 +191,13 @@ Several  _application_  can be contributed at the same time, but only one will b
 
 Extensions for this extension point should provide a `service` ID in the extension declaration:
 
-	{
-		"point": "npa.core.service",
-		"id": "npa.http.service",
-		"service": "http"
-	}
+```json
+{
+	"point": "npa.core.service",
+	"id": "npa.http.service",
+	"service": "http"
+}
+```
   	
 At runtime, any plugin will be able to use this service interface by calling the Core's  _getService()_  method:
 
@@ -212,11 +218,13 @@ Extension points:
 
 Extensions for this extension point should provide a `path` in their declaration:
 
-	{
-		"point": "npa.http.router",
-		"id": "npa.ui.test.application.router",
-		"path": "/test"
-	} 
+```json
+{
+	"point": "npa.http.router",
+	"id": "npa.ui.test.application.router",
+	"path": "/test"
+} 
+```
 	
 Contributed **handlers** may refer to a specific router by using its id (see example below)
 
@@ -224,14 +232,16 @@ Contributed **handlers** may refer to a specific router by using its id (see exa
 
 Callback handlers are externally configured through the `manifest.json`  file:
 
-	{
-		"point": "npa.http.handler",
-		"id": "npa.ui.test.application.query.record.handler",
-		"router": "npa.ui.test.application.router",
-		"method": "POST",
-		"schema": "/getRecords",
-		"handler": "getRecordsHandler"
-	}
+```json
+{
+	"point": "npa.http.handler",
+	"id": "npa.ui.test.application.query.record.handler",
+	"router": "npa.ui.test.application.router",
+	"method": "POST",
+	"schema": "/getRecords",
+	"handler": "getRecordsHandler"
+}
+```
 	
 In this example, the  _npa.ui.test.application.query.record.handler_  handler contributes a POST callback named  _getRecordsHandler(req,res)_  to the router  _npa.ui.test.application.router_ . 
 
@@ -241,12 +251,14 @@ As the router provided the `/test` path, this handler will be associated with th
 
 Extensions for this extension point should provide a `path` and a `localDir`  in their declaration:
 
-	{
-		"point": "npa.http.static",
-		"id": "npa.ui.test.application.htdocs",
-		"path": "/static",
-		"localDir": "htdocs"
-	}
+```json
+{
+	"point": "npa.http.static",
+	"id": "npa.ui.test.application.htdocs",
+	"path": "/static",
+	"localDir": "htdocs"
+}
+```
 
 **Express** will associate the static content located in this local directory with the provided `path` prefix.
 
@@ -258,11 +270,38 @@ For example, a file  _myGifFile.gif_  located in the  _img_  subdirectory of the
 
 To redirect the unspecified uri '/' to a given uri, a plugin may provide an extension to `npa.http.home`
 
-	{
-		"point": "npa.http.home",
-		"id": "npa.ui.test.application.home",
-		"uri": "/static/home.html"
-	}
+```json
+{
+	"point": "npa.http.home",
+	"id": "npa.ui.test.application.home",
+	"uri": "/static/home.html"
+}
+```
 
 This is not the same mechanism as a  _default page_  but it is usefull to redirect a default request to an application Home page (like index.html)
-  	  
+
+### npa.logging
+
+A basic logging facility for NPA. Notice that the **Plugin** base Class provides convenience `info()`, `debug()`, `trace()` and `error()` methods, but by default, these methods will redirect to the standard console.
+
+Extending `npa.logging` will redirect the logs to a `plugin.out.log` or `plugin.err.log` file depending on the situation. The relative location of these file within the main logs directory is precised through the extension declaration.
+
+Extension point:
+
+#### npa.log.provider
+
+Extensions for this extension point should provide a `dir` location  in their declaration:
+
+```json
+{
+	"point": "npa.log.provider",
+	"id": "npa.http.logger",
+	"dir": "http"
+}
+```
+ 	  
+The main directory for logs is by default relative to the directory containing the NPA's `app.js` file and is named `logs`.
+Applications can change this default location by using the `--logs` command-line parameter.
+
+By default, applications are using the `info` logging level. To change to a more precisely defined logging mode, use the `--level` command-line parameter.
+Accepted modes are `info`, `error`, `debug` and `trace`
