@@ -10,34 +10,38 @@ A simple example is worth a thousand explanation...
 
 Let's say I want to create a first application using Node.js and express. I would write some code like the following:
 
-    const express = require('express');  
-      
-    var app = express();  
-      
-    app.get('/sayHello', function (req, res) {  
-        res.set('Content-Type','application/json');  
-        res.json({"message": "Hello, World!","from": "myApp_1"});  
-    });  
-      
-    app.listen(9080);  
+```javascript
+const express = require('express');  
+  
+var app = express();  
+  
+app.get('/sayHello', function (req, res) {  
+    res.set('Content-Type','application/json');  
+    res.json({"message": "Hello, World!","from": "myApp_1"});  
+});  
+  
+app.listen(9080);
+```
 
 Now, if I want to create a second, slightly different application but using the same dependencies, I would write some code like the following:
 
-    const express = require('express');  
-      
-    var app = express();  
-      
-    app.get('/sayHello', function (req, res) {  
-    	res.set('Content-Type','application/json');  
-    	if(req.query.to){  
-    		var helloStr = 'Hello, Mr. '+req.query.to;  
-    		res.json({"message": helloStr,"from": "myApp_2"}});  
-    	}else{  
-    		res.json({"message": "Hello, World!","from": "myApp_2"}});  
-    	}  
-    });  
-      
-    app.listen(9090);  
+```javascript
+const express = require('express');  
+  
+var app = express();  
+  
+app.get('/sayHello', function (req, res) {  
+	res.set('Content-Type','application/json');  
+	if(req.query.to){  
+		var helloStr = 'Hello, Mr. '+req.query.to;  
+		res.json({"message": helloStr,"from": "myApp_2"}});  
+	}else{  
+		res.json({"message": "Hello, World!","from": "myApp_2"}});  
+	}  
+});  
+  
+app.listen(9090);
+```
 
 The real contribution for both these applications is the implementation of the callback associated with the `express.get()` method call.
 
@@ -83,21 +87,23 @@ The plugin plugs itself to the framework using a manifest file written in JSON.
 
 ##### plugin.js:
 
-    const Plugin = require('../../core/plugin.js');  
-    var plugin = new Plugin();  
-    
-    plugin.initialize = function(){  
-    	var httpListener = this.runtime.getPlugin('npa.http');  
-    	httpListener.startListener();  
-    }  
-    
-    plugin.sayHelloRequestHandler = function(req,res){  
-    	res.set('Content-Type','application/json');  
-    	res.json({"message": "Hello, World!","from": "sayHello plugin"}});  
-    }  
-    
-    module.exports = plugin;  
+```javascript
+const Plugin = require('../../core/plugin.js');  
+var plugin = new Plugin();  
 
+plugin.initialize = function(){  
+	var httpListener = this.runtime.getPlugin('npa.http');  
+	httpListener.startListener();  
+}  
+
+plugin.sayHelloRequestHandler = function(req,res){  
+	res.set('Content-Type','application/json');  
+	res.json({"message": "Hello, World!","from": "sayHello plugin"}});  
+}  
+
+module.exports = plugin;
+```
+ 
 At first glance, this seems to be way more complicated than our very first code example. But take a closer look: this code is now independent from **express**!
 Also, the mapping between the callback and the URL schema is now externalized in the manifest file, so that it may be changed without modifying the code.  
 
@@ -133,19 +139,25 @@ The plugin itself is a pure node.js module, with its usual require statements an
 
 The NPA framework contributes a base class for plugins, but a factory service my provide an alternative way for creating the plugin instance.
 
-	const Plugin = require('../../core/plugin.js');  
-	var plugin = new Plugin();
+```javascript
+const Plugin = require('../../core/plugin.js');  
+var plugin = new Plugin();
+```
   
 The Node module exports this unique instance. The purpose of the module is to customize the instance, that is, to provide callbacks, request handlers and other business functions.
 
-	module.exports = plugin;
+```javascript
+module.exports = plugin;
+```
 
 When the plugin extends another plugin's extension point, it may provide configuration (JSON) or code contribution. In this later case
 the plugin is expected to follow the interface requirement for the extension point provider.
 
-	plugin.helloRequestHandler = function(req,res){
-		[...]
-	}
+```javascript
+plugin.helloRequestHandler = function(req,res){
+	[...]
+}
+```
 
 In our code sample, the  _helloRequestHandler_  prototype follows the rules set by the  _npa.http.handler_  extension point defined by the  _npa.http_  plugin, which itself follow the rules set by the  `request`  framework. 
 
