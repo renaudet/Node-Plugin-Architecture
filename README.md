@@ -141,7 +141,7 @@ To run the application, we use the app.js launcher using a command-line like:
     
 The plugin itself is a pure node.js module, with its usual require statements and export declaration.
 
-The NPA framework contributes a base class for plugins, but a factory service my provide an alternative way for creating the plugin instance.
+The NPA framework contributes a base class for plugins, but a factory service may provide an alternate way for creating the plugin instance.
 
 ```javascript
 const Plugin = require('../../core/plugin.js');  
@@ -164,6 +164,92 @@ plugin.helloRequestHandler = function(req,res){
 ```
 
 In our code sample, the  _helloRequestHandler_  prototype follows the rules set by the  _npa.http.handler_  extension point defined by the  _npa.http_  plugin, which itself follow the rules set by the  `request`  framework. 
+
+## Packaging a plugin
+
+An NPA plugin is basically one or more Node.js module files gathered in a directory with a  _manifest.json_  file to describe its content.
+
+By convention, the main plugin file should be named `plugin.js` but it's not an obligation.
+
+The plugin manifest file is a JSON file with name `manifest.json` having the following syntax:
+
+```json
+{
+  "id": "<this plugin's unique ID - use a namespace to ensure uniqueness as org-type.org-name.project-name.package-name>",
+  "name": "<the common name for this plugin - will be used in the integration runtime messages>",
+  "version": "x.y.z",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "<this plugin's explicit dependency ID>","version": "x.y.z"}
+  ],
+  "extends": [
+  	{
+  		"point": "<an extension point's ID>",
+  		"id": "<this extension ID - should be unique>",
+  		"<some-field>": "<some-value>"
+  	}
+  ],
+  "provides": [
+  	{"id": "<an extension point's unique ID provided by this plugin - may be extended by self or others>"}
+  ]
+}
+```
+
+The cardinality for the `extends` array is [0..n] and the cardinality for the `provides` array is [0..n].
+
+The cardinality for the `requires` array is [0..n] but it would be rather uncommon for a plugin to not at least depend on the `npa.logging` plugin.
+
+By convention, the plugin's directory name should be `<plugin-id>_<plugin-version>`. The directory itself is a sub-directory for an NPA  _install location_ 
+
+
+## NPA Install Location
+
+NPA provides a base plugin set installed by default in the `./plugins` directory. This location is configured in the `appConfig.json` file:
+
+```json
+{ 
+	"sites": [
+		{
+			"id": "default",
+			"location": "./plugins"
+		}
+	]
+}
+```
+
+Users may add their own plugins in this directory where they will be automatically discovered, but the recommended strategy is to create a new  _install location_  :
+
+Create a new directory to store your own plugins
+Update the `appConfig.json` file to add a new `site`:
+
+```json
+{ 
+	"sites": [
+		{
+			"id": "default",
+			"location": "./plugins"
+		},
+		{
+			"id": "<an ID for your install location - will be used later for automatic updates>",
+			"location": "<relative or absolute Path to your own plugins directory>"
+		}
+	]
+}
+```
+
+And that's it. Though you may find it hard to refer to the base NPA modules as-is (un-resolved module location at runtime) while using the base Plugin class:
+
+```javascript
+const Plugin = require('/core/plugin.js'); //-> Exception
+```
+
+You may use the absolute path for the /core/plugin.js module, but a more elegant way to solve this is as follow:
+
+```javascript
+const Plugin = require(process.cwd()+'/core/plugin.js');
+```
+
+Using  _process.cwd()_  is not entirely safe but the integration runtime itself does not change the working directory.
 
 ## Base Plugins documentation
 
