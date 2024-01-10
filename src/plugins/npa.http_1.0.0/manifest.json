@@ -5,7 +5,8 @@
   "plugin": "plugin.js",
   "http": {
   	"port": 9080,
-  	"secure": false
+  	"secure": false,
+  	"corsEnabled": true
   },
   "requires": [
   	{"type": "plugin","id": "npa.logging","version": "1.0.0"},

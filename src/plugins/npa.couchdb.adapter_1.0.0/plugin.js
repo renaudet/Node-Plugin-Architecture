@@ -31,18 +31,26 @@ plugin.makeBaseUrl = function(ds){
 		return this.baseUrlCache[ds.reference];
 	}else{
 		var url = PROTOCOL;
-		if(typeof ds.environment!='undefined' && typeof ds.environment.username!='undefined' && typeof ds.environment.password!='undefined'){
+		if(typeof ds.environment!='undefined' && 
+		   typeof ds.environment.username!='undefined' && 
+		   typeof process.env[ds.environment.username]!='undefined' && 
+		   typeof ds.environment.password!='undefined' && 
+		   typeof process.env[ds.environment.password]!='undefined'){
 			url += process.env[ds.environment.username]+':'+process.env[ds.environment.password]+'@';
 		}else
 		if(typeof ds.username!='undefined' && typeof ds.password!='undefined'){
 			url += ds.username+':'+ds.password+'@';
 		}
-		if(typeof ds.environment!='undefined' && typeof ds.environment.hostname!='undefined'){
+		if(typeof ds.environment!='undefined' && 
+		   typeof ds.environment.hostname!='undefined' &&
+		   typeof process.env[ds.environment.hostname]!='undefined'){
 			url += process.env[ds.environment.hostname];
 		}else{
 			url += ds.hostname;
 		}
-		if(typeof ds.environment!='undefined' && typeof ds.environment.port!='undefined'){
+		if(typeof ds.environment!='undefined' && 
+		   typeof ds.environment.port!='undefined' &&
+		   typeof process.env[ds.environment.port]!='undefined'){
 			url += ':'+process.env[ds.environment.port];
 		}else
 		if(typeof ds.port!='undefined'){
@@ -50,7 +58,9 @@ plugin.makeBaseUrl = function(ds){
 		}else{
 			url += ':5984';
 		}
-		if(typeof ds.environment!='undefined' && typeof ds.environment.dbname!='undefined'){
+		if(typeof ds.environment!='undefined' && 
+		   typeof ds.environment.dbname!='undefined' && 
+		   typeof process.env[ds.environment.dbname]!='undefined'){
 			url += '/'+process.env[ds.environment.dbname];
 		}else{
 			url += '/'+ds.dbname;
@@ -59,6 +69,78 @@ plugin.makeBaseUrl = function(ds){
 		return url;
 	}
 }
+
+/*
+ * Check if Couch Database exists
+ */
+plugin.checkDatabase = function(reference,callback){
+	this.debug('->checkDatabase()');
+	this.trace('reference: '+reference);
+	var datasource = this.getDatasource(reference);
+	var url= this.makeBaseUrl(datasource);
+	axios.get(url)
+	.then(function (response) {
+		var result = response.data;
+		if(result && result.error){
+			plugin.debug('result contains an error: '+result.error);
+			plugin.debug('<-checkDatabase()');
+			callback(null,false);
+		}else{
+			plugin.debug('<-checkDatabase()');
+			callback(null,true);
+		}
+	})
+	.catch(function (error) {
+		plugin.debug('axios returned an error!');
+		if(error.response && error.response.data){
+			if('not_found'==error.response.data.error){
+				plugin.debug('<-checkDatabase()');
+				callback(null,false);
+			}else{
+				plugin.debug('error.response.data:');
+				plugin.debug(JSON.stringify(error.response.data));
+				plugin.debug('<-checkDatabase()');
+				callback(error.response.data,false);
+			}
+		}else{
+			plugin.debug('error:');
+			plugin.debug(JSON.stringify(error));
+			plugin.debug('<-checkDatabase()');
+			callback(error,false);
+		}
+	});
+}
+
+/*
+ * Create Couch database
+ */
+plugin.createDatabase = function(reference,callback){
+	this.debug('->createDatabase()');
+	this.trace('reference: '+reference);
+	var datasource = this.getDatasource(reference);
+	var url= this.makeBaseUrl(datasource);
+	axios.put(url, {})
+	.then(function (response) {
+		var result = response.data;
+		if(result && result.error){
+			plugin.debug('<-createDatabase()');
+			callback(result.error,false);
+		}else{
+			plugin.debug('<-createDatabase()');
+			callback(null,true);
+		}
+	})
+	.catch(function (error) {
+		if(error.response && error.response.data){
+			plugin.debug('<-createDatabase()');
+			callback(error.response.data,false);
+		}else{
+			plugin.debug('<-createDatabase()');
+			callback(error,false);
+		}
+	});
+}
+
 
 /*
  * Query Database for documents - uses CouchDB Query language
@@ -109,6 +191,8 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 	axios.get(url)
 	.then(function (response) {
 		if(response.data.error){
+			console.log('then');
+			console.log(response);
 			plugin.error(JSON.stringify(response.data,null,'\t'));
 			plugin.debug('<-findByPrimaryKey()');
 			callback(response.data.error,null);
@@ -118,6 +202,8 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 		}
 	})
 	.catch(function (error) {
+		console.log('catch');
+		console.log(error);
 		plugin.error(JSON.stringify(error,null,'\t'));
 		plugin.debug('<-findByPrimaryKey()');
 		callback(error,null);
@@ -166,8 +252,8 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 			plugin.debug('<-updateRecord()');
 			callback(err,null);
 		}else{
-			var datasource = this.getDatasource(reference);
-			var url= this.makeBaseUrl(datasource)+'/'+data.id+"?rev="+record._rev;
+			var datasource = plugin.getDatasource(reference);
+			var url= plugin.makeBaseUrl(datasource)+'/'+data.id+"?rev="+record._rev;
 			axios.put(url,data)
 			.then(function (response) {
 				if(response.data.error){
@@ -202,8 +288,8 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 			plugin.debug('<-deleteRecord()');
 			callback(err,null);
 		}else{
-			var datasource = this.getDatasource(reference);
-			var url= this.makeBaseUrl(datasource)+'/'+data.id+"?rev="+record._rev;
+			var datasource = plugin.getDatasource(reference);
+			var url= plugin.makeBaseUrl(datasource)+'/'+data.id+"?rev="+record._rev;
 			axios.delete(url)
 			.then(function (response) {
 				if(response.data.error){

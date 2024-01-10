@@ -20,6 +20,10 @@ plugin.beforePlugExtensions = function(){
 	this.endpoint.set('etag', false);
 	this.endpoint.use(bodyParser.json());
 	this.endpoint.use(bodyParser.urlencoded({ extended: false }));
+	if(this.config.http.corsEnabled){
+		var cors = require('cors');
+		this.endpoint.use(cors());
+	}
 }
 
 plugin.plug = function(extender,extensionPointConfig){

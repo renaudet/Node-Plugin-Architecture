@@ -5,12 +5,8 @@
 			"location": "./plugins"
 		},
 		{
-			"id": "myApp",
-			"location": "./myAppPlugins"
-		},
-		{
 			"id": "npa.ui.tools",
-			"location": "C:/Git/npa-ui-tools/src/plugins"
+			"location": "D:/Git/npa-ui-tools/src/plugins"
 		}
 	]
 }
