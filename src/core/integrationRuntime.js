@@ -4,6 +4,7 @@
  */
 const PLUGIN_MANIFEST_NAME = 'manifest.json';
 var fs = require('fs');  
+var PluginWrapper = require('./pluginWrapper');  
  
  class Integrator{
 	config = null;
@@ -13,6 +14,7 @@ var fs = require('fs');
 	constructor(runtimeConfiguration){
 		this.config = runtimeConfiguration;
 		this.config.installLocation = process.cwd();
+		this.discover();
 	}
 	discover(){
 		for(var i=0;i<this.config.sites.length;i++){
@@ -110,14 +112,16 @@ var fs = require('fs');
 			}
 		}
 		for(var i=0;i<this.plugins.length;i++){
-			this.loadPlugin(this.plugins[i]);
+			this.lazzyLoadPlugin(this.plugins[i]);
 		}
 	}
-	loadPlugin(mapEntry){
+	lazzyLoadPlugin(mapEntry){
+		console.log('lazzyLoadPlugin('+mapEntry.manifest.id+')');
 		try{
-			var pluginImpl = require(mapEntry.path.replace(/\.\//,'../')+'/'+mapEntry.manifest.plugin);
-			pluginImpl.configure(mapEntry.path,mapEntry.manifest,this);
-			this.map[pluginImpl.getId()] = pluginImpl;
+			let wrapper = new PluginWrapper(mapEntry,this);
+			this.lazzyRegisterExtensionPoints(wrapper);
+			this.lazzyPlugExtensions(wrapper);
+			this.map[wrapper.getId()] = wrapper;
 		}catch(lpe){
 			console.log('Plugin '+mapEntry.manifest.id+' failed loading!');
 			console.log(lpe);
@@ -188,30 +192,33 @@ var fs = require('fs');
 		}
 		return false;
 	}
-	registerExtensionPoints(plugin){
-		var pluginConfig = plugin.getConfig();
+	lazzyRegisterExtensionPoints(pluginWrapper){
+		var pluginConfig = pluginWrapper.getConfig();
 		for(var i=0;i<pluginConfig.provides.length;i++){
 			var extensionPoint = pluginConfig.provides[i];
-			this.extensionPoints[extensionPoint.id] = plugin;
-			console.log('registered extension point '+extensionPoint.id);
+			this.extensionPoints[extensionPoint.id] = pluginWrapper;
+			console.log('lazzy registered extension point '+extensionPoint.id);
 		}
 	}
-	plugExtensions(plugin){
-		var pluginConfig = plugin.getConfig();
+	lazzyPlugExtensions(pluginWrapper){
+		var pluginConfig = pluginWrapper.getConfig();
 		for(var i=0;i<pluginConfig.extends.length;i++){
 			var extension = pluginConfig.extends[i];
-			var targetPlugin = this.extensionPoints[extension.point];
-			if(typeof targetPlugin!='undefined'){
-				targetPlugin.plug(plugin,extension);
+			var targetPluginWrapper = this.extensionPoints[extension.point];
+			if(typeof targetPluginWrapper!='undefined'){
+				targetPluginWrapper.plug(pluginWrapper,extension);
 			}else{
-				console.log(plugin.getId()+': unknown extension point '+extension.point);
+				console.log(pluginWrapper.getId()+': unknown extension point '+extension.point);
 			}
 		}
 	}
 	getPlugin(pluginId){
+		return this.map[pluginId].getPlugin();
+	}
+	getPluginWrapper(pluginId){
 		return this.map[pluginId];
 	}
-	start(then){
+	/*start(then){
 		var runtime = this;
 		var pluginStarter = function(pluginList,index,onceDone){
 			if(index<pluginList.length){
@@ -225,7 +232,7 @@ var fs = require('fs');
 			}
 		}
 		pluginStarter(this.plugins,0,then);
-	}
+	}*/
 }
 
 module.exports = Integrator;

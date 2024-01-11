@@ -7,6 +7,4 @@ const Plugin = require('../../core/plugin.js');
 
 var plugin = new Plugin();
 
-
-
 module.exports = plugin;

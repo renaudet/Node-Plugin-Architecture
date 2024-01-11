@@ -24,16 +24,10 @@ class Plugin {
 		this.directory = path;
 		this.config = config;
 		this.runtime = runtime;
-		this.beforePlugExtensions();
-		this.runtime.registerExtensionPoints(this);
-		this.runtime.plugExtensions(this);
-		this.onConfigurationLoaded();
 	}
-	beforePlugExtensions(){
-		
+	beforeExtensionPlugged(){
 	}
 	onConfigurationLoaded(){
-		
 	}
 	getLocalDirectory(){
 		return this.directory;
@@ -57,18 +51,27 @@ class Plugin {
 		}
 		return extensions;
 	}
-	plug(extender,extensionPointConfig){
-		console.log(this.getId()+': plugin in extender to extension point '+extensionPointConfig.point);
+	lazzyPlug(extenderId,extensionPointConfig){
+		console.log(this.getId()+': lazzy plugin-in extender '+extenderId+'to extension point '+extensionPointConfig.point);
 	}
-	setLogger(logger){
+	getService(name){
+		let core = this.runtime.getPlugin('npa.core');
+		return core.getService(name);
+	}
+	getLogger(){
+		let logger = this.runtime.getPlugin('npa.logging');
+		return logger.getLogger(this.getId());
+	}
+	/*setLogger(logger){
 		this.logger = logger;
-	}
+	}*/
 	log(level,text){
-		if(this.logger!=null){
+		/*if(this.logger!=null){
 			this.logger.log(level,text);
 		}else{
 			console.log(this.getId()+': '+level+' '+text);
-		}
+		}*/
+		this.getLogger().log(level,text);
 	}
 	info(text){
 		console.log(text);
@@ -85,9 +88,8 @@ class Plugin {
 		this.log('info','an error was sent to the error log!');
 		this.log('error',text);
 	}
-	start(then){
+	start(){
 		this.info(this.config.id+' starting...');
-		then();
 	}
 }
 

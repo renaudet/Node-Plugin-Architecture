@@ -15,7 +15,8 @@ plugin.routers = {};
 plugin.commands = [];
 plugin.homePage = null;
 
-plugin.beforePlugExtensions = function(){
+plugin.beforeExtensionPlugged = function(){
+	process.title = process.env[ENV_NAME];
 	this.endpoint = express();
 	this.endpoint.set('etag', false);
 	this.endpoint.use(bodyParser.json());
@@ -26,7 +27,8 @@ plugin.beforePlugExtensions = function(){
 	}
 }
 
-plugin.plug = function(extender,extensionPointConfig){
+plugin.lazzyPlug = function(extenderId,extensionPointConfig){
+	var wrapper = this.runtime.getPluginWrapper(extenderId);
 	if('npa.http.router'==extensionPointConfig.point){
 		var command = {};
 		command.execute = function(){
@@ -43,6 +45,7 @@ plugin.plug = function(extender,extensionPointConfig){
 				plugin.info('adding a GET HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
 				var router = plugin.routers[extensionPointConfig.router];
 				if(typeof router!="undefined"){
+					let extender = wrapper.getPlugin();
 					router.get(extensionPointConfig.schema,extender[extensionPointConfig.handler]);
 				}else{
 					this.error('router '+extensionPointConfig.router+' not found for extension point '+extensionPointConfig.id);
@@ -56,6 +59,7 @@ plugin.plug = function(extender,extensionPointConfig){
 				plugin.info('adding a POST HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
 				var router = plugin.routers[extensionPointConfig.router];
 				if(typeof router!="undefined"){
+					let extender = wrapper.getPlugin();
 					router.post(extensionPointConfig.schema,extender[extensionPointConfig.handler]);
 				}else{
 					this.error('router '+extensionPointConfig.router+' not found for extension point '+extensionPointConfig.id);
@@ -69,6 +73,7 @@ plugin.plug = function(extender,extensionPointConfig){
 				plugin.info('adding a PUT HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
 				var router = plugin.routers[extensionPointConfig.router];
 				if(typeof router!="undefined"){
+					let extender = wrapper.getPlugin();
 					router.put(extensionPointConfig.schema,extender[extensionPointConfig.handler]);
 				}else{
 					this.error('router '+extensionPointConfig.router+' not found for extension point '+extensionPointConfig.id);
@@ -82,6 +87,7 @@ plugin.plug = function(extender,extensionPointConfig){
 				plugin.info('adding a DELETE HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
 				var router = plugin.routers[extensionPointConfig.router];
 				if(typeof router!="undefined"){
+					let extender = wrapper.getPlugin();
 					router.delete(extensionPointConfig.schema,extender[extensionPointConfig.handler]);
 				}else{
 					this.error('router '+extensionPointConfig.router+' not found for extension point '+extensionPointConfig.id);
@@ -92,7 +98,7 @@ plugin.plug = function(extender,extensionPointConfig){
 	}
 	if('npa.http.static'==extensionPointConfig.point){
 		var path = extensionPointConfig.path;
-		var dir = 	extender.getLocalDirectory()+'/'+extensionPointConfig.localDir;
+		var dir = 	wrapper.getLocalDirectory()+'/'+extensionPointConfig.localDir;
 		var command = {};
 		command.execute = function(){
 			plugin.info('adding static content endpoint "'+path+'" from directory '+dir);
@@ -109,11 +115,6 @@ plugin.plug = function(extender,extensionPointConfig){
 		this.info('adding Home page redirectiorn to '+extensionPointConfig.uri);
 		this.homePage = extensionPointConfig.uri;
 	}
-}
-
-plugin.start = function(then){
-	process.title = process.env[ENV_NAME];
-	then();
 }
 
 plugin.startListener = function(requiredPort=null){

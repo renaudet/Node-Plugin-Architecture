@@ -9,23 +9,39 @@ var plugin = new Plugin();
 plugin.applications = {};
 plugin.services = {};
 
-plugin.plug = function(extender,extensionPointConfig){
+plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 	if('npa.core.application'==extensionPointConfig.point){
 		this.debug('registering application '+extensionPointConfig.name+' from extension point '+extensionPointConfig.id);
-		this.applications[extensionPointConfig.name] = extender;
+		this.applications[extensionPointConfig.name] = extenderId;
 	}
 	if('npa.core.service'==extensionPointConfig.point){
 		this.debug('registering service '+extensionPointConfig.service+' from extension point '+extensionPointConfig.id);
-		this.services[extensionPointConfig.service] = extender;
+		this.services[extensionPointConfig.service] = extenderId;
 	}
 }
 
 plugin.getApplication = function(name){
-	return this.applications[name];
+	this.debug('getApplication('+name+')');
+	let appPluginId = this.applications[name];
+	if(typeof appPluginId!='undefined'){
+		this.trace('found application extension for "'+name+'" from plugin '+appPluginId);
+		return this.runtime.getPlugin(appPluginId);
+	}else{
+		this.trace('no application extension found for name "'+name+'"');
+		return null;
+	}
 }
 
 plugin.getService = function(name){
-	return this.services[name];
+	this.debug('getService('+name+')');
+	let implPluginId = this.services[name];
+	if(typeof implPluginId!='undefined'){
+		this.trace('found service extension for "'+name+'" from plugin '+implPluginId);
+		return this.runtime.getPlugin(implPluginId);
+	}else{
+		this.trace('no service extension found for name "'+name+'"');
+		return null;
+	}
 }
 
 module.exports = plugin;

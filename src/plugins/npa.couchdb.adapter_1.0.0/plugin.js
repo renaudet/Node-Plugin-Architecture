@@ -18,6 +18,12 @@ plugin.plug = function(extender,extensionPointConfig){
 	}
 }
 
+plugin.lazzyPlug = function(extenderId,extensionPointConfig){
+	if('npa.couchdb.adapter.datasource'==extensionPointConfig.point){
+		this.datasources[extensionPointConfig.reference] = extensionPointConfig;
+	}
+}
+
 plugin.getDatasource = function(ref){
 	if(typeof this.datasources[ref]!='undefined'){
 		return this.datasources[ref];

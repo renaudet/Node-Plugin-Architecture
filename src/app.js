@@ -66,15 +66,11 @@ if(!process.env[ENV_NAME]){
 	}
 }
 
-var integrator = new Runtime(config);
-integrator.discover();
-integrator.start(function(){
-	console.log('all plugins started!');
-	var core = integrator.getPlugin('npa.core');
-	var app = core.getApplication(process.env[ENV_APPLICATION]);
-	if(typeof app!='undefined'){
-		app.initialize();
-	}else{
-		console.log('ERROR: application '+process.env[ENV_APPLICATION]+' not found!');
-	}
-});
+let integrator = new Runtime(config);
+let core = integrator.getPlugin('npa.core');
+let app = core.getApplication(process.env[ENV_APPLICATION]);
+if(app!=null){
+	app.start();
+}else{
+	console.log('ERROR: application '+process.env[ENV_APPLICATION]+' not found!');
+}

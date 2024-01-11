@@ -93,9 +93,9 @@ The plugin plugs itself to the framework using a manifest file written in JSON.
 const Plugin = require('../../core/plugin.js');  
 var plugin = new Plugin();  
 
-plugin.initialize = function(){  
-	var httpListener = this.runtime.getPlugin('npa.http');  
-	httpListener.startListener();  
+plugin.start = function(){  
+	let httpServer = this.getService('http');  
+	httpServer.startListener();  
 }  
 
 plugin.sayHelloRequestHandler = function(req,res){  
@@ -107,6 +107,7 @@ module.exports = plugin;
 ```
  
 At first glance, this seems to be way more complicated than our very first code example. But take a closer look: this code is now independent from **express**!
+
 Also, the mapping between the callback and the URL schema is now externalized in the manifest file, so that it may be changed without modifying the code.  
 
 ##### Plugin installation  
@@ -139,7 +140,7 @@ To run the application, we use the app.js launcher using a command-line like:
 
 ## Writing a plugin for NPA
     
-The plugin itself is a pure node.js module, with its usual require statements and export declaration.
+A plugin is a pure node.js module, with its usual require statements and export declaration.
 
 The NPA framework contributes a base class for plugins, but a factory service may provide an alternate way for creating the plugin instance.
 
@@ -249,7 +250,7 @@ You may use the absolute path for the /core/plugin.js module, but a more elegant
 const Plugin = require(process.cwd()+'/core/plugin.js');
 ```
 
-Using  _process.cwd()_  is not entirely safe but the integration runtime itself does not change the working directory.
+Using  _process.cwd()_  is safe here as the integration runtime itself does not change the working directory before any plugin instance is loaded.
 
 ## Base Plugins documentation
 
@@ -292,7 +293,13 @@ let core = this.runtime.getPlugin('npa.core');
 let httpService = core.getService('http');
 ```
 
-This way, the service consumer is independant from the service provider. It doesn't require to know anything about the **Express** stuff used for its implementation
+This way, the service consumer is independant from the service provider. It doesn't require to know anything about the **Express** stuff used for the implementation of the  _http_  service in our example.
+
+A convenience method is implemented in the base Plugin class to get the same result:
+
+```javascript
+let httpService = this.getService('http');
+```
 
 ### npa.http
 
@@ -391,3 +398,4 @@ Applications can change this default location by using the `--logs` command-line
 
 By default, applications are using the `info` logging level. To change to a more precisely defined logging mode, use the `--level` command-line parameter.
 Accepted modes are `info`, `error`, `debug` and `trace`
+

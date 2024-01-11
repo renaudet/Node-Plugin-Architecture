@@ -8,11 +8,12 @@ const ENV_NAME = 'APPLICATION_NAME';
 
 var plugin = new Plugin();
 
-plugin.initialize = function(){
+plugin.start = function(){
 	this.name = process.env[ENV_NAME];
 	this.info('Application '+this.name+' starting...');
-	var httpListener = this.runtime.getPlugin('npa.http');
-	httpListener.startListener();
+	let core = this.runtime.getPlugin('npa.core');
+	let httpServer = core.getService('http');
+	httpServer.startListener();
 }
 
 plugin.helloRequestHandler = function(req,res){

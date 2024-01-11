@@ -18,27 +18,38 @@ plugin.mode = 'info';
 plugin.logDir = null;
 plugin.loggers = {};
 
-plugin.onConfigurationLoaded = function(){
+plugin.beforeExtensionPlugged = function(){
 	this.logDir = process.env[ENV_LOG_DIR];
 	this.mode = process.env[ENV_LOG_LEVEL];
 	console.log('logs directory set to '+this.logDir);
-}
-plugin.plug = function(extender,extensionPointConfig){
-	var loggerConfig = {};
-	loggerConfig.dir = extensionPointConfig.dir;
-	loggerConfig.plugin = extender;
-	this.loggers[extensionPointConfig.id] = loggerConfig;
-	var path = this.logDir+'/'+loggerConfig.dir;
-	fs.mkdirSync(path,{"recursive": true});
-	extender.setLogger({
+	console.log('logging mode set to '+this.mode);
+	let defaultLoggerConfig = {
+		initialized: true,
 		log: function(level,text){
-			plugin.log(extensionPointConfig.id,level,text);
+			if(plugin.doLog(level)){
+				console.log('['+level+'] '+text);
+			}
 		}
-	});
+	};
+	plugin.loggers['default'] = defaultLoggerConfig;
 }
+
+plugin.lazzyPlug = function(extenderId,extensionPointConfig){
+	var loggerConfig = {};
+	loggerConfig.initialized = false;
+	loggerConfig.dir = extensionPointConfig.dir;
+	loggerConfig.logger = {
+		log: function(level,text){
+			plugin.log(extenderId,level,text);
+		}
+	};
+	this.loggers[extenderId] = loggerConfig;
+}
+
 plugin.formatLog = function(msg){
 	return moment().format(DATE_TIME_FORMAT)+' '+msg+'\n';
 }
+
 plugin.doLog = function(level){
 	if('error'==level || 'info'==level){
 		return true;
@@ -49,6 +60,7 @@ plugin.doLog = function(level){
 	}
 	return false;
 }
+
 plugin.log = function(sourceId,level,text){
 	if(this.doLog(level)){
 		var loggerConfig = this.loggers[sourceId];
@@ -60,6 +72,20 @@ plugin.log = function(sourceId,level,text){
 			//ignore for now
 		}
 	}
+}
+
+plugin.getLogger = function(pluginId){
+	let loggerConfig = this.loggers[pluginId];
+	if(loggerConfig){
+		if(!loggerConfig.initialized){
+			let path = this.logDir+'/'+loggerConfig.dir;
+			fs.mkdirSync(path,{"recursive": true});
+			loggerConfig.initialized = true;
+			loggerConfig.logger.log('info','logger initialized - trace mode is '+this.mode);
+		}
+		return loggerConfig.logger;
+	}
+	return this.loggers['default'].logger;
 }
 
 module.exports = plugin;
