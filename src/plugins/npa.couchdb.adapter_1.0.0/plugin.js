@@ -12,16 +12,15 @@ var plugin = new Plugin();
 plugin.datasources = {};
 plugin.baseUrlCache = {};
 
-plugin.plug = function(extender,extensionPointConfig){
+plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 	if('npa.couchdb.adapter.datasource'==extensionPointConfig.point){
-		this.datasources[extensionPointConfig.reference] = extensionPointConfig;
+		this.registerDatasource(extensionPointConfig);
 	}
 }
 
-plugin.lazzyPlug = function(extenderId,extensionPointConfig){
-	if('npa.couchdb.adapter.datasource'==extensionPointConfig.point){
-		this.datasources[extensionPointConfig.reference] = extensionPointConfig;
-	}
+plugin.registerDatasource = function(datasourceDef){
+	this.debug('registering new datasource "'+datasourceDef.reference+'" with database "'+datasourceDef.dbname+'"');
+	this.datasources[datasourceDef.reference] = datasourceDef;
 }
 
 plugin.getDatasource = function(ref){

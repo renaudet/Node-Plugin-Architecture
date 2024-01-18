@@ -68,9 +68,4 @@ if(!process.env[ENV_NAME]){
 
 let integrator = new Runtime(config);
 let core = integrator.getPlugin('npa.core');
-let app = core.getApplication(process.env[ENV_APPLICATION]);
-if(app!=null){
-	app.start();
-}else{
-	console.log('ERROR: application '+process.env[ENV_APPLICATION]+' not found!');
-}
+core.startApplication(process.env[ENV_APPLICATION]);

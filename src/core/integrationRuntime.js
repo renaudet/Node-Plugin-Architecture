@@ -218,21 +218,6 @@ var PluginWrapper = require('./pluginWrapper');
 	getPluginWrapper(pluginId){
 		return this.map[pluginId];
 	}
-	/*start(then){
-		var runtime = this;
-		var pluginStarter = function(pluginList,index,onceDone){
-			if(index<pluginList.length){
-				var pluginEntry = runtime.plugins[index];
-				console.log('starting plugin '+pluginEntry.manifest.id);
-				runtime.map[pluginEntry.manifest.id].start(function(){
-					pluginStarter(pluginList,index+1,onceDone);
-				});
-			}else{
-				onceDone();
-			}
-		}
-		pluginStarter(this.plugins,0,then);
-	}*/
 }
 
 module.exports = Integrator;

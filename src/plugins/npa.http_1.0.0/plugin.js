@@ -5,6 +5,7 @@
  
 const Plugin = require('../../core/plugin.js');
 const express = require('express');
+const moment = require('moment');
 const bodyParser = require('body-parser');
 const ENV_PORT = 'PORT';
 const ENV_NAME = 'APPLICATION_NAME';
@@ -14,6 +15,7 @@ plugin.endpoint = null;
 plugin.routers = {};
 plugin.commands = [];
 plugin.homePage = null;
+plugin.sessionStore = null;
 
 plugin.beforeExtensionPlugged = function(){
 	process.title = process.env[ENV_NAME];
@@ -25,9 +27,42 @@ plugin.beforeExtensionPlugged = function(){
 		var cors = require('cors');
 		this.endpoint.use(cors());
 	}
+	if(typeof this.config.http.session!='undefined' && this.config.http.session.enabled){
+		let sessionConfig = this.config.http.session;
+		var session = require('express-session');
+		this.endpoint.use(session({
+		  name: sessionConfig.name,
+		  secret: sessionConfig.secret,
+		  resave: false,
+		  saveUninitialized: true,
+		  rolling: true,
+		  cookie: { 
+			secure: false,
+			sameSite: 'strict'
+		  }
+		}));
+		this.endpoint.use(function(req, res, next) {
+			//console.log('req.path: '+req.path);
+			res.setHeader('X-Powered-By','NPA HttpServer v'+plugin.config.version);
+			if(req.path.indexOf('.')>0){
+				next();
+			}else{
+				if(!plugin.sessionStore){
+					plugin.sessionStore = req.sessionStore;
+				}
+				next();
+			}
+		});
+	}else{
+		this.endpoint.use(function(req, res, next) {
+			res.setHeader('X-Powered-By','NPA HttpServer v'+plugin.config.version);
+		});
+	}
+	
 }
 
 plugin.lazzyPlug = function(extenderId,extensionPointConfig){
+	this.trace('->lazzyPlug('+extenderId+','+extensionPointConfig.point+')');
 	var wrapper = this.runtime.getPluginWrapper(extenderId);
 	if('npa.http.router'==extensionPointConfig.point){
 		var command = {};
@@ -112,18 +147,29 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 		this.commands.push(command);
 	}
 	if('npa.http.home'==extensionPointConfig.point){
-		this.info('adding Home page redirectiorn to '+extensionPointConfig.uri);
-		this.homePage = extensionPointConfig.uri;
+		this.homePage = 'to-be-defined';
+		var command = {};
+		command.execute = function(){
+			let core = plugin.runtime.getPlugin('npa.core');
+			if(extensionPointConfig.application==core.activeApplicationName){
+				plugin.info('adding Home page redirectiorn to '+extensionPointConfig.uri);
+				plugin.homePage = extensionPointConfig.uri;
+			}
+		}
+		this.commands.push(command);
 	}
+	this.trace('<-lazzyPlug()');
 }
 
 plugin.startListener = function(requiredPort=null){
+	this.trace('->startListener()');
 	for(var i=0;i<this.commands.length;i++){
 		var command = this.commands[i];
 		try{
 			command.execute();
 		}catch(t){}
 	}
+	console.log('Home page: '+this.homePage);
 	if(this.homePage!=null){
 		this.endpoint.get('/',function(req, res){
 			res.redirect(plugin.homePage);
@@ -138,6 +184,57 @@ plugin.startListener = function(requiredPort=null){
 	}
 	this.info('starting the HTTP listener on port '+port);
 	this.endpoint.listen(port);
+	
+	if(typeof this.config.http.session!='undefined' && this.config.http.session.enabled){
+		let sessionConfig = this.config.http.session;
+		setTimeout(function(){ plugin.checkSessions(); },sessionConfig.checkperiod*1000);
+	}
+	this.trace('<-startListener()');
+}
+
+plugin.checkSessions = function(){
+	this.trace('->checkSessions()');
+	var now = moment();
+	this.trace('Session reaper thread begin ('+now.format('HH:mm:ss')+')...');
+	if(this.sessionStore!=null){
+		var sessionIdTable = [];
+		for(sessionId in this.sessionStore.sessions){
+			sessionIdTable.push(sessionId);
+		}
+		var checkSessionsById = function(sessionIdLst,index,then){
+			if(index < sessionIdLst.length){
+				var sessionId = sessionIdLst[index];
+				plugin.debug('checking session ID#'+sessionId);
+				plugin.sessionStore.get(sessionId,function(err,sessObj){
+					if(err){
+						plugin.error('sessionStore#get() returned an error:');
+						plugin.error(JSON.stringify(err));
+					}else{
+						plugin.debug('last access: '+sessObj.lastAccess);
+						plugin.debug('session is alive: '+sessObj.alive);
+						if(sessObj.lastAccess && sessObj.alive){
+							var inactivityPeriod = now.diff(sessObj.lastAccess);
+							plugin.debug('inactivity period is: '+inactivityPeriod);
+							if(inactivityPeriod>1000*plugin.config.http.session.expires){
+								plugin.info('-session ID #'+sessionId+' expired (created: '+moment(sessObj.created).format('HH:mm:ss')+')... Cleaning up!');
+								plugin.sessionStore.destroy(sessionId);
+							}
+						}
+					}
+					checkSessionsById(sessionIdLst,index+1,then);
+				});
+			}else{
+				then();
+			}
+		}
+		checkSessionsById(sessionIdTable,0,function(){
+			plugin.trace('Session reaper thread end');
+			setTimeout(function(){ plugin.checkSessions(); },1000*plugin.config.http.session.checkperiod);
+		});
+	}else{
+		this.trace('Session reaper thread end');
+		setTimeout(function(){ plugin.checkSessions(); },1000*plugin.config.http.session.checkperiod);
+	}
 }
 
 module.exports = plugin;

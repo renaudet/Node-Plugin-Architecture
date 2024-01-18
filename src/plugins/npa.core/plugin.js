@@ -8,6 +8,7 @@ const Plugin = require('../../core/plugin.js');
 var plugin = new Plugin();
 plugin.applications = {};
 plugin.services = {};
+plugin.activeApplicationName = null;
 
 plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 	if('npa.core.application'==extensionPointConfig.point){
@@ -29,6 +30,17 @@ plugin.getApplication = function(name){
 	}else{
 		this.trace('no application extension found for name "'+name+'"');
 		return null;
+	}
+}
+
+plugin.startApplication = function(name){
+	let app = this.getApplication(name);
+	if(app!=null){
+		this.info('Starting application "'+name+'"');
+		this.activeApplicationName = name;
+		app.start();
+	}else{
+		this.error('Unable to start application "'+name+'": not found!');
 	}
 }
 

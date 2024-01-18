@@ -6,7 +6,14 @@
   "http": {
   	"port": 9080,
   	"secure": false,
-  	"corsEnabled": true
+  	"corsEnabled": true,
+  	"session": {
+  		"enabled": true,
+	    "name": "NPA",
+	    "secret": "npa4node",
+	    "expires": 900,
+	    "checkperiod": 120
+  	}
   },
   "requires": [
   	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
