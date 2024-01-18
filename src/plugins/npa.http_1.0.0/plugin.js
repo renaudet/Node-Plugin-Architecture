@@ -42,8 +42,8 @@ plugin.beforeExtensionPlugged = function(){
 		  }
 		}));
 		this.endpoint.use(function(req, res, next) {
-			//console.log('req.path: '+req.path);
 			res.setHeader('X-Powered-By','NPA HttpServer v'+plugin.config.version);
+			res.setHeader('Accept-Language',plugin.config.http.supportedLocale);
 			if(req.path.indexOf('.')>0){
 				next();
 			}else{
@@ -56,6 +56,7 @@ plugin.beforeExtensionPlugged = function(){
 	}else{
 		this.endpoint.use(function(req, res, next) {
 			res.setHeader('X-Powered-By','NPA HttpServer v'+plugin.config.version);
+			res.setHeader('Accept-Language',plugin.config.http.supportedLocale);
 		});
 	}
 	
