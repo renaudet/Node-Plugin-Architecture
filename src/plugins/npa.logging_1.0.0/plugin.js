@@ -25,13 +25,17 @@ plugin.beforeExtensionPlugged = function(){
 	console.log('logging mode set to '+this.mode);
 	let defaultLoggerConfig = {
 		initialized: true,
-		log: function(level,text){
-			if(plugin.doLog(level)){
-				console.log('['+level+'] '+text);
+		logger: {
+			log: function(level,text){
+				console.log('->defaultLoggerConfig#log()');
+				if(plugin.doLog(level)){
+					console.log('['+level+'] '+text);
+				}
+				console.log('<-defaultLoggerConfig#log()');
 			}
 		}
 	};
-	plugin.loggers['default'] = defaultLoggerConfig;
+	this.loggers['default'] = defaultLoggerConfig;
 }
 
 plugin.lazzyPlug = function(extenderId,extensionPointConfig){
@@ -76,7 +80,7 @@ plugin.log = function(sourceId,level,text){
 
 plugin.getLogger = function(pluginId){
 	let loggerConfig = this.loggers[pluginId];
-	if(loggerConfig){
+	if(typeof loggerConfig!='undefined'){
 		if(!loggerConfig.initialized){
 			let path = this.logDir+'/'+loggerConfig.dir;
 			fs.mkdirSync(path,{"recursive": true});
@@ -84,8 +88,9 @@ plugin.getLogger = function(pluginId){
 			loggerConfig.logger.log('info','logger initialized - trace mode is '+this.mode);
 		}
 		return loggerConfig.logger;
+	}else{
+		return this.loggers['default'].logger;
 	}
-	return this.loggers['default'].logger;
 }
 
 module.exports = plugin;

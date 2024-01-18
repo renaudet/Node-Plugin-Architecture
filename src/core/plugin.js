@@ -62,15 +62,7 @@ class Plugin {
 		let logger = this.runtime.getPlugin('npa.logging');
 		return logger.getLogger(this.getId());
 	}
-	/*setLogger(logger){
-		this.logger = logger;
-	}*/
 	log(level,text){
-		/*if(this.logger!=null){
-			this.logger.log(level,text);
-		}else{
-			console.log(this.getId()+': '+level+' '+text);
-		}*/
 		this.getLogger().log(level,text);
 	}
 	info(text){
