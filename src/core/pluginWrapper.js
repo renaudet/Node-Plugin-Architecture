@@ -15,13 +15,17 @@ class PluginWrapper {
 	getPlugin(){
 		if(this.impl==null){
 			console.log('effectively loading Plugin '+this.getId());
-			let pathToModule = this.pluginConfig.path.replace(/\.\//,'../')+'/'+this.pluginConfig.manifest.plugin;
-			this.impl = require(pathToModule);
-			this.impl.configure(this.pluginConfig.path,this.pluginConfig.manifest,this.runtime);
-			this.impl.beforeExtensionPlugged();
-			for(var i=0;i<this.extensionPlugs.length;i++){
-				let extensionPlug = this.extensionPlugs[i];
-				this.impl.lazzyPlug(extensionPlug.wrapper.getId(),extensionPlug.config);
+			try{
+				let pathToModule = this.pluginConfig.path.replace(/\.\//,'../')+'/'+this.pluginConfig.manifest.plugin;
+				this.impl = require(pathToModule);
+				this.impl.configure(this.pluginConfig.path,this.pluginConfig.manifest,this.runtime);
+				this.impl.beforeExtensionPlugged();
+				for(var i=0;i<this.extensionPlugs.length;i++){
+					let extensionPlug = this.extensionPlugs[i];
+					this.impl.lazzyPlug(extensionPlug.wrapper.getId(),extensionPlug.config);
+				}
+			}catch(t){
+				console.log(t);
 			}
 		}
 		return this.impl;

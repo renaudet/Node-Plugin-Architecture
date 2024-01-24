@@ -68,7 +68,7 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 	if('npa.http.router'==extensionPointConfig.point){
 		var command = {};
 		command.execute = function(){
-			plugin.info('adding express router for path '+extensionPointConfig.path);
+			plugin.info('adding express router for path '+extensionPointConfig.path+' from #'+extensionPointConfig.id);
 			plugin.routers[extensionPointConfig.id] = express.Router();
 			plugin.endpoint.use(extensionPointConfig.path,plugin.routers[extensionPointConfig.id]);
 		}
@@ -92,7 +92,7 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 		if('POST'==extensionPointConfig.method){
 			var command = {};
 			command.execute = function(){
-				plugin.info('adding a POST HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
+				plugin.info('adding a POST HTTP handler with schema '+extensionPointConfig.schema+' to router #'+extensionPointConfig.router);
 				var router = plugin.routers[extensionPointConfig.router];
 				if(typeof router!="undefined"){
 					let extender = wrapper.getPlugin();

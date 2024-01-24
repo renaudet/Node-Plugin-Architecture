@@ -66,6 +66,10 @@ if(!process.env[ENV_NAME]){
 	}
 }
 
-let integrator = new Runtime(config);
-let core = integrator.getPlugin('npa.core');
-core.startApplication(process.env[ENV_APPLICATION]);
+if(!process.env.NODE_PATH){
+	console.log('NODE_PATH environment variable not set - Please add exports NODE_PATH = '+process.cwd()+'/node_modules to your launching script before starting the Node.js process');
+}else{
+	let integrator = new Runtime(config);
+	let core = integrator.getPlugin('npa.core');
+	core.startApplication(process.env[ENV_APPLICATION]);
+}
