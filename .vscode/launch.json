@@ -10,7 +10,14 @@
             ],
             "type": "node",
             "cwd": "${workspaceFolder}\\src",
-            "args": ["--application","test","--logs","C:/tmp/NPA","--level","fine","--port","9090","--name","NPA Test Server"]
+            "args": ["--application","test","--logs","C:/tmp/NPA","--level","fine","--port","9090","--name","NPA Test Server"],
+            "env": {
+                "COUCH_DB_HOST": "127.0.0.1",
+                "COUCH_DB_USER": "admin",
+                "COUCH_DB_USER_PASSWD": "admin4couch",
+                "COUCH_DB_BASE": "npa_test",
+                "NODE_PATH": "${workspaceFolder}\\src"
+            }
         }
     ]
 }
