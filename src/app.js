@@ -9,7 +9,7 @@ const Runtime = require('./core/integrationRuntime');
 
 const ENV_APPLICATION = 'APPLICATION';
 const ARGV_APPLICATION = 'application';
-const APPLICATION_DEFAULT_VALUE = 'myApp';
+const APPLICATION_DEFAULT_VALUE = 'test';
 
 const ENV_LOG_DIR = 'LOG_DIR';
 const ARGV_LOG_DIR = 'logs';
