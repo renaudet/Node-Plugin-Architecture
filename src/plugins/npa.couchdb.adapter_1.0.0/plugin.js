@@ -19,8 +19,17 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 }
 
 plugin.registerDatasource = function(datasourceDef){
-	this.debug('registering new datasource "'+datasourceDef.reference+'" with database "'+datasourceDef.dbname+'"');
+	this.debug('registering new datasource "'+datasourceDef.reference+'"');
+	this.debug(JSON.stringify(datasourceDef,null,'\t'));
 	this.datasources[datasourceDef.reference] = datasourceDef;
+}
+
+plugin.unregisterDatasource = function(dsReference){
+	this.debug('unregistering datasource "'+dsReference+'"');
+	delete this.datasources[dsReference];
+	if(typeof this.baseUrlCache[dsReference]!='undefined'){
+		delete this.baseUrlCache[dsReference];
+	}
 }
 
 plugin.getDatasource = function(ref){
@@ -303,7 +312,7 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 					callback(response.data.error,null);
 				}else{
 					plugin.debug('<-deleteRecord()');
-					callback(null,{ "status": "deleted" });
+					callback(null,{"status": "deleted","record":record });
 				}
 			})
 			.catch(function (error) {
