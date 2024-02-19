@@ -19,7 +19,6 @@ var plugin = new Plugin();
 	"method": GET/PUT/POST/DELETE,
 	"payload": (optional)json
   }
-}
  */
 plugin.performRestApiCall = function(restContext,onRestInvocationCompletedCallback){
 	var port = typeof restContext.port!='undefined'?':'+restContext.port:'';

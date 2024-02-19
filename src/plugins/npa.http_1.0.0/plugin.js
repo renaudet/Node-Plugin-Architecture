@@ -220,6 +220,9 @@ plugin.checkSessions = function(){
 								plugin.info('-session ID #'+sessionId+' expired (created: '+moment(sessObj.created).format('HH:mm:ss')+')... Cleaning up!');
 								plugin.sessionStore.destroy(sessionId);
 							}
+						}else{
+							plugin.info('-session ID #'+sessionId+' is a ghost - cleaning');
+							plugin.sessionStore.destroy(sessionId);
 						}
 					}
 					checkSessionsById(sessionIdLst,index+1,then);
