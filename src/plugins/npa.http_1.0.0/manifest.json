@@ -12,13 +12,17 @@
   		"enabled": true,
 	    "name": "NPA",
 	    "secret": "npa4node",
+	    "expires_": 180,
 	    "expires": 900,
-	    "checkperiod": 120
+	    "checkperiod": 120,
+	    "persistent": true,
+	    "store": "CouchSessionStore"
   	}
   },
   "requires": [
   	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
-  	{"type": "plugin","id": "npa.core","version": "1.0.0"}
+  	{"type": "plugin","id": "npa.core","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.couchdb.adapter","version": "1.0.0"}
   ],
   "extends": [
   	{
@@ -30,6 +34,21 @@
   		"point": "npa.core.service",
   		"id": "npa.http.service",
   		"service": "http"
+  	},
+  	{
+  		"point": "npa.couchdb.adapter.datasource",
+  		"id": "npa.http.sessions.datasource",
+  		"reference": "http.sessions",
+  		"hostname": "127.0.0.1",
+  		"port": "5984",
+  		"dbname": "npa_sessions",
+  		"maxPageSize": 500,
+  		"environment": {
+  			"hostname": "NPA_SESSIONS_COUCH_DB_HOST",
+	  		"port": "NPA_SESSIONS_COUCH_DB_PORT",
+	  		"username": "NPA_SESSIONS_COUCH_DB_USER",
+	  		"password": "NPA_SESSIONS_COUCH_DB_USER_PASSWD"
+  		}
   	}
   ],
   "provides": [

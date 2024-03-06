@@ -216,11 +216,16 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 		}
 	})
 	.catch(function (error) {
-		console.log('catch');
-		console.log(error);
-		plugin.error(JSON.stringify(error,null,'\t'));
-		plugin.debug('<-findByPrimaryKey()');
-		callback(error,null);
+		if(error && error.response && error.response.status==404){
+			plugin.debug('<-findByPrimaryKey()');
+			callback(null,null);
+		}else{
+			console.log('catch');
+			console.log(error);
+			plugin.error(JSON.stringify(error,null,'\t'));
+			plugin.debug('<-findByPrimaryKey()');
+			callback(error,null);
+		}
 	});
 }
 
@@ -231,7 +236,9 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 	this.debug('->createRecord()');
 	this.trace('reference: '+reference);
 	this.trace('data: '+JSON.stringify(data));
-	data.id = uuidv4();
+	if(typeof data.id=='undefined'){
+		data.id = uuidv4();
+	}
 	var datasource = this.getDatasource(reference);
 	var url= this.makeBaseUrl(datasource)+'/'+data.id;
 	axios.put(url,data)
@@ -263,7 +270,7 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 	this.findByPrimaryKey(reference,data,function(err,record){
 		if(err){
 			plugin.error(JSON.stringify(err,null,'\t'));
-			plugin.debug('<-updateRecord()');
+			plugin.debug('<-updateRecord() findByPrimaryKey');
 			callback(err,null);
 		}else{
 			var datasource = plugin.getDatasource(reference);
@@ -271,18 +278,18 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 			axios.put(url,data)
 			.then(function (response) {
 				if(response.data.error){
+					plugin.debug('<-updateRecord() response.data.error');
 					plugin.error(JSON.stringify(response.data,null,'\t'));
-					plugin.debug('<-updateRecord()');
 					callback(response.data.error,null);
 				}else{
-					plugin.debug('<-updateRecord()');
+					plugin.debug('<-updateRecord() success');
 					data._rev = response.data.rev;
 					callback(null,data);
 				}
 			})
 			.catch(function (error) {
 				plugin.error(JSON.stringify(error,null,'\t'));
-				plugin.debug('<-updateRecord()');
+				plugin.debug('<-updateRecord() catch');
 				callback(error,null);
 			});
 		}
@@ -302,24 +309,28 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 			plugin.debug('<-deleteRecord()');
 			callback(err,null);
 		}else{
-			var datasource = plugin.getDatasource(reference);
-			var url= plugin.makeBaseUrl(datasource)+'/'+data.id+"?rev="+record._rev;
-			axios.delete(url)
-			.then(function (response) {
-				if(response.data.error){
-					plugin.error(JSON.stringify(response.data,null,'\t'));
+			if(record!=null){
+				var datasource = plugin.getDatasource(reference);
+				var url= plugin.makeBaseUrl(datasource)+'/'+data.id+"?rev="+record._rev;
+				axios.delete(url)
+				.then(function (response) {
+					if(response.data.error){
+						plugin.error(JSON.stringify(response.data,null,'\t'));
+						plugin.debug('<-deleteRecord()');
+						callback(response.data.error,null);
+					}else{
+						plugin.debug('<-deleteRecord()');
+						callback(null,{"status": "deleted","record":record });
+					}
+				})
+				.catch(function (error) {
+					plugin.error(JSON.stringify(error,null,'\t'));
 					plugin.debug('<-deleteRecord()');
-					callback(response.data.error,null);
-				}else{
-					plugin.debug('<-deleteRecord()');
-					callback(null,{"status": "deleted","record":record });
-				}
-			})
-			.catch(function (error) {
-				plugin.error(JSON.stringify(error,null,'\t'));
-				plugin.debug('<-deleteRecord()');
-				callback(error,null);
-			});
+					callback(error,null);
+				});
+			}else{
+				callback(null,{"status": "not found","record":record });
+			}
 		}
 	});
 }

@@ -6,6 +6,7 @@
 const Plugin = require('../../core/plugin.js');
 const express = require('express');
 const moment = require('moment');
+const COUCH_SERVICE_ID = 'couchdb';
 const bodyParser = require('body-parser');
 const ENV_PORT = 'PORT';
 const ENV_NAME = 'APPLICATION_NAME';
@@ -30,17 +31,46 @@ plugin.beforeExtensionPlugged = function(){
 	if(typeof this.config.http.session!='undefined' && this.config.http.session.enabled){
 		let sessionConfig = this.config.http.session;
 		var session = require('express-session');
-		this.endpoint.use(session({
-		  name: sessionConfig.name,
-		  secret: sessionConfig.secret,
-		  resave: false,
-		  saveUninitialized: true,
-		  rolling: true,
-		  cookie: { 
-			secure: false,
-			sameSite: 'strict'
-		  }
-		}));
+		if(sessionConfig.persistent){
+			if('CouchSessionStore'==sessionConfig.store){
+				let StoreClass = require('./couchdbSessionStore.js');
+				let couchService = plugin.getService(COUCH_SERVICE_ID);
+				var persistentStore = new StoreClass(couchService);
+				let sessionMiddleware = session({
+				  name: sessionConfig.name,
+				  secret: sessionConfig.secret,
+				  resave: false,
+				  saveUninitialized: true,
+				  rolling: true,
+				  cookie: { 
+					secure: false,
+					sameSite: 'strict'
+				  },
+				  store: persistentStore
+				});
+				
+				this.endpoint.use(function(req, res, next){
+					if(req.path.indexOf('.')>0 && !req.path.endsWith('.html')){
+						next();
+					}else{
+						console.log(req.path);
+						sessionMiddleware(req, res, next);
+					}
+				});
+			}
+		}else{
+			this.endpoint.use(session({
+			  name: sessionConfig.name,
+			  secret: sessionConfig.secret,
+			  resave: false,
+			  saveUninitialized: true,
+			  rolling: true,
+			  cookie: { 
+				secure: false,
+				sameSite: 'strict'
+			  }
+			}));
+		}
 		this.endpoint.use(function(req, res, next) {
 			res.setHeader('X-Powered-By','NPA HttpServer v'+plugin.config.version);
 			res.setHeader('Accept-Language',plugin.config.http.supportedLocale);
@@ -198,42 +228,45 @@ plugin.checkSessions = function(){
 	var now = moment();
 	this.trace('Session reaper thread begin ('+now.format('HH:mm:ss')+')...');
 	if(this.sessionStore!=null){
-		var sessionIdTable = [];
-		for(sessionId in this.sessionStore.sessions){
-			sessionIdTable.push(sessionId);
-		}
-		var checkSessionsById = function(sessionIdLst,index,then){
-			if(index < sessionIdLst.length){
-				var sessionId = sessionIdLst[index];
-				plugin.debug('checking session ID#'+sessionId);
-				plugin.sessionStore.get(sessionId,function(err,sessObj){
-					if(err){
-						plugin.error('sessionStore#get() returned an error:');
-						plugin.error(JSON.stringify(err));
-					}else{
-						plugin.debug('last access: '+sessObj.lastAccess);
-						plugin.debug('session is alive: '+sessObj.alive);
-						if(sessObj.lastAccess && sessObj.alive){
-							var inactivityPeriod = now.diff(sessObj.lastAccess);
-							plugin.debug('inactivity period is: '+inactivityPeriod);
-							if(inactivityPeriod>1000*plugin.config.http.session.expires){
-								plugin.info('-session ID #'+sessionId+' expired (created: '+moment(sessObj.created).format('HH:mm:ss')+')... Cleaning up!');
+		this.sessionStore.all(function(err,sessions){
+			var sessionIdTable = [];
+			for(var sessionId in sessions){
+				sessionIdTable.push(sessionId);
+			}
+			plugin.debug('found '+sessionIdTable.length+' sessions in store');
+			var checkSessionsById = function(sessionIdLst,index,then){
+				if(index < sessionIdLst.length){
+					var sessionId = sessionIdLst[index];
+					plugin.debug('checking session ID#'+sessionId);
+					plugin.sessionStore.get(sessionId,function(err,sessObj){
+						if(err){
+							plugin.error('sessionStore#get() returned an error:');
+							plugin.error(JSON.stringify(err));
+						}else{
+							plugin.debug('last access: '+sessObj.lastAccess);
+							plugin.debug('session is alive: '+sessObj.alive);
+							if(sessObj.lastAccess && sessObj.alive){
+								var inactivityPeriod = now.diff(sessObj.lastAccess);
+								plugin.debug('inactivity period is: '+inactivityPeriod);
+								if(inactivityPeriod>1000*plugin.config.http.session.expires){
+									plugin.info('-session ID #'+sessionId+' expired (created: '+moment(sessObj.created).format('HH:mm:ss')+')... Cleaning up!');
+									plugin.sessionStore.destroy(sessionId);
+								}
+							}else{
+								plugin.info('-session ID #'+sessionId+' is a ghost - cleaning');
 								plugin.sessionStore.destroy(sessionId);
 							}
-						}else{
-							plugin.info('-session ID #'+sessionId+' is a ghost - cleaning');
-							plugin.sessionStore.destroy(sessionId);
 						}
-					}
-					checkSessionsById(sessionIdLst,index+1,then);
-				});
-			}else{
-				then();
+						checkSessionsById(sessionIdLst,index+1,then);
+					});
+				}else{
+					then();
+				}
 			}
-		}
-		checkSessionsById(sessionIdTable,0,function(){
-			plugin.trace('Session reaper thread end');
-			setTimeout(function(){ plugin.checkSessions(); },1000*plugin.config.http.session.checkperiod);
+			checkSessionsById(sessionIdTable,0,function(){
+				plugin.trace('Session reaper thread end');
+				setTimeout(function(){ plugin.checkSessions(); },1000*plugin.config.http.session.checkperiod);
+			});
 		});
 	}else{
 		this.trace('Session reaper thread end');
