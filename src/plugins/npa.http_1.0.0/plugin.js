@@ -53,7 +53,6 @@ plugin.beforeExtensionPlugged = function(){
 					if(req.path.indexOf('.')>0 && !req.path.endsWith('.html')){
 						next();
 					}else{
-						console.log(req.path);
 						sessionMiddleware(req, res, next);
 					}
 				});

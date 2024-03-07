@@ -13,7 +13,7 @@ class Queue {
 	}
 	push(item){
 		this.items.push(item);
-		console.log('queue size is now '+this.items.length);
+		if(DEBUG_MODE) console.log('queue size is now '+this.items.length);
 	}
 	get(){
 		if(this.items.length==0){
@@ -25,7 +25,7 @@ class Queue {
 				newQueue.push(this.items[i]);
 			}
 			this.items = newQueue;
-			console.log('queue size is now '+this.items.length);
+			if(DEBUG_MODE) console.log('queue size is now '+this.items.length);
 			return first;
 		}
 	}

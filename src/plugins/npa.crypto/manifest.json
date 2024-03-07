@@ -1,0 +1,24 @@
+{
+  "id": "npa.crypto",
+  "name": "REST client provider",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.core","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.crypto.logger",
+  		"dir": "crypto"
+  	},
+  	{
+  		"point": "npa.core.service",
+  		"id": "npa.crypto.service",
+  		"service": "cryptography"
+  	}
+  ],
+  "provides": [
+  ]
+}
