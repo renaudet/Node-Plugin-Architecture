@@ -28,6 +28,7 @@ plugin.beforeExtensionPlugged = function(){
 		var cors = require('cors');
 		this.endpoint.use(cors());
 	}
+	this.endpoint.use(bodyParser.text({ type: 'text/*' }));
 	if(typeof this.config.http.session!='undefined' && this.config.http.session.enabled){
 		let sessionConfig = this.config.http.session;
 		var session = require('express-session');

@@ -1,0 +1,72 @@
+/***
+ * scafTreeViewer.css - default CSS file for the ScafTreeViewer component
+ * Copyright 2023 Nicolas Renaudet - All rights reserved
+ *
+ ***/
+ 
+/* Remove default bullets */
+ul.tree, .tree {
+  list-style-type: none;
+  font-size: 0.9rem;
+}
+
+/* Remove margins and padding from the parent ul */
+.tree {
+  margin: 0;
+  padding: 3px;
+}
+
+/* Style the caret/arrow */
+.caret {
+  cursor: pointer;
+  user-select: none; /* Prevent text selection */
+  padding-right: 10px;
+}
+
+.leaf {
+  cursor: pointer;
+  user-select: none; /* Prevent text selection */
+  padding-right: 10px;
+}
+
+/* Create the caret/arrow with a unicode, and style it 25B6*/
+.caret::before {
+  /*content: "\0229E";*/
+  content: url(/img/icons/list-add.png);
+  /*color: black;*/
+  display: inline-block;
+  margin-right: 6px;
+  /*font-size: 1.2rem;*/
+  vertical-align: middle;
+}
+
+/* Rotate the caret/arrow icon when clicked on (using JavaScript) */
+.caret-down::before {
+  /*transform: rotate(90deg);*/
+  /*content: "\0229F";*/
+  content: url(/img/icons/list-remove.png);
+  vertical-align: middle;
+}
+
+/* Hide the nested list */
+.nested {
+  display: none;
+  padding-left: 20px;
+}
+
+.leaf:hover {
+  background-color: #86b8ea;
+}
+
+.caret:hover {
+  background-color: #86b8ea;
+}
+
+/* Show the nested list when the user clicks on the caret/arrow (with JavaScript) */
+.active {
+  display: block;
+} 
+
+.selectedNode {
+  background-color: #d3e2f1;	
+}
