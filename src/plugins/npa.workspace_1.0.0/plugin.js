@@ -18,7 +18,7 @@ plugin.beforeExtensionPlugged = function(){
 	}
 }
 
-plugin.folderContent = function(relativePath){
+plugin.folderContent = function(relativePath,showHiddenFile=false){
 	this.trace('->folderContent()');
 	this.debug('relativePath: '+relativePath);
 	var folderAbsolutePath = this.location+'/'+relativePath;
@@ -27,7 +27,9 @@ plugin.folderContent = function(relativePath){
 	for(var i=0;i<entries.length;i++){
 		var dirEntry = entries[i];
 		if(dirEntry.isFile()){
-			folderEntries.push({"name": dirEntry.name,"type": "file"});
+			if(showHiddenFile || !dirEntry.name.startsWith('.')){
+				folderEntries.push({"name": dirEntry.name,"type": "file"});
+			}
 		}else{
 			folderEntries.push({"name": dirEntry.name,"type": "directory"});
 		}
@@ -208,6 +210,14 @@ plugin.getFileContent = function(filePath,options={}){
 	var buffer = fs.readFileSync(absoluteFilePath,options);
 	this.trace('<-getFileContent()');
 	return buffer.toString();
+}
+
+plugin.absolutePath = function(resourcePath){
+	return this.location+'/'+resourcePath;
+}
+
+plugin.renameFile = function(baseDir,oldName,newName){
+	fs.renameSync(baseDir+'/'+oldName,baseDir+'/'+newName);
 }
 
 module.exports = plugin;

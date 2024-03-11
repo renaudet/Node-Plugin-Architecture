@@ -23,7 +23,7 @@ plugin.beforeExtensionPlugged = function(){
 	this.endpoint = express();
 	this.endpoint.set('etag', false);
 	this.endpoint.use(bodyParser.json());
-	this.endpoint.use(bodyParser.urlencoded({ extended: false }));
+	this.endpoint.use(bodyParser.urlencoded({ extended: true, limit: '500kb' }));
 	if(this.config.http.corsEnabled){
 		var cors = require('cors');
 		this.endpoint.use(cors());
