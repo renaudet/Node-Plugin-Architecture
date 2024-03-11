@@ -1,0 +1,25 @@
+{
+  "id": "npa.mail",
+  "name": "REST client provider",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.core","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.mail.logger",
+  		"dir": "npa.mail"
+  	},
+  	{
+  		"point": "npa.core.service",
+  		"id": "npa.mail.service",
+  		"service": "mail"
+  	}
+  ],
+  "provides": [
+  	{"id": "npa.mail.provider"}
+  ]
+}
