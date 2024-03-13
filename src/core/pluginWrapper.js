@@ -24,6 +24,7 @@ class PluginWrapper {
 					let extensionPlug = this.extensionPlugs[i];
 					this.impl.lazzyPlug(extensionPlug.wrapper.getId(),extensionPlug.config);
 				}
+				this.impl.onConfigurationLoaded();
 			}catch(t){
 				console.log(t);
 			}
