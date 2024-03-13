@@ -111,30 +111,7 @@ class CouchSessionStore extends Store{
 	}
 	get(sid, callback){
 		if(DEBUG_MODE) console.log('Factory#get('+sid+')');
-		/*if(typeof this.sessions[sid]!='undefined'){
-			if(DEBUG_MODE) console.log('returning session from cache');
-			callback(null, this.sessions[sid]);
-		}else{
-			if(this.online){
-				let factory = this;
-				this.lookupSessionRecord(sid,function(err,sessionRecord){
-					if(err){
-						callback(err,null);
-					}else{
-						if(sessionRecord){
-							factory.sessions[sid] = sessionRecord.data;
-							callback(null,sessionRecord.data);
-						}else{
-							callback(null, null);
-						}
-					}
-				});
-			}else{
-				callback(null, null);
-			}
-		}*/
 		if(this.online){
-			//get the queue
 			let queue = this.queues[sid];
 			if(typeof queue=='undefined'){
 				this.queues[sid] = new Queue();
@@ -143,7 +120,7 @@ class CouchSessionStore extends Store{
 			if(queue.isEmpty()){
 				queue.push(callback);
 				let factory = this;
-				console.log('lookupSessionRecord('+sid+')');
+				if(DEBUG_MODE) console.log('lookupSessionRecord('+sid+')');
 				this.lookupSessionRecord(sid,function(err,sessionRecord){
 					if(err || sessionRecord==null){
 						let unQueue = function(){
