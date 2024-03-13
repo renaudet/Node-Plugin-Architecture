@@ -137,6 +137,25 @@ dependencies so that all required plugins are initialized before the one explici
 To run the application, we use the app.js launcher using a command-line like:  
 
     $> node app.js --port 9080 --application sayHello
+    
+## Installation
+
+NPA is a full Node.js-based application. Once the package is installed/unzipped and configured (see Install locations), go to the root directory containing the package.json file and type:
+
+```bash
+$>npm install 
+```
+
+This will install the required Node.js modules. Notice that plugins from external install locations will use the **NODE_PATH** environment variable to retrieve their dependencies.
+
+To start the default application and check everything is working, open a command prompt on the root directory and type:
+
+```bash
+$>export NODE_PATH=./node_modules
+$>node app.js --application test --logs ./logs --level finest --port 9080 --name "APAF Test Server"
+```
+
+Open a browser on the following URL: http://localhost:9080
 
 ## Writing a plugin for NPA
     
@@ -256,6 +275,12 @@ Using  _process.cwd()_  is safe here as the integration runtime itself does not 
 
 ### NPA Core / npa.core
 
+Dependency:
+
+```json
+	{"type": "plugin","id": "npa.core","version": "1.0.0"}
+```
+
 This is the root plugin for the NPA plugin-tree architecture. It provides two extension points:
 
 #### npa.core.application
@@ -270,9 +295,9 @@ Extensions for this extension point should provide a `name` in the extension dec
 }
 ```
 
-The plugin itself should provide an `initialize()`  method without arguments. The method will be called by the launcher if the `--application <name>` launcher's argument matches this extension's name
+The plugin itself should override the `start()`  method without arguments. The method will be called by the launcher if the `--application <name>` launcher's argument matches this extension's name
 
-Several  _application_  can be contributed at the same time, but only one will be initialized
+Several  _application_  can be contributed at the same time, but only one will be started by the launcher (default value: test)
 
 #### npa.core.service
 
@@ -301,7 +326,15 @@ A convenience method is implemented in the base Plugin class to get the same res
 let httpService = this.getService('http');
 ```
 
+Several plugins may provide an implementation for the same service, though, it is up to the runtime to choose which one will be effectively called.
+
 ### npa.http
+
+Dependency:
+
+```json
+	{"type": "plugin","id": "npa.http","version": "1.0.0"}
+```
 
 This is the HTTP provider for NPA. Based on **Express**, it provides exension points to easily plug routers, handlers or static content.
 
@@ -375,6 +408,12 @@ This is not the same mechanism as a  _default page_  but it is usefull to redire
 
 ### npa.logging
 
+Dependency:
+
+```json
+	{"type": "plugin","id": "npa.logging","version": "1.0.0"}
+```
+
 A basic logging facility for NPA. Notice that the **Plugin** base Class provides convenience `info()`, `debug()`, `trace()` and `error()` methods, but by default, these methods will redirect to the standard console.
 
 Extending `npa.logging` will redirect the logs to a `plugin.out.log` or `plugin.err.log` file depending on the situation. The relative location of these file within the main logs directory is precised through the extension declaration.
@@ -398,4 +437,150 @@ Applications can change this default location by using the `--logs` command-line
 
 By default, applications are using the `info` logging level. To change to a more precisely defined logging mode, use the `--level` command-line parameter.
 Accepted modes are `info`, `error`, `debug` and `trace`
+
+#### npa.couchdb.adapter
+
+Dependency:
+
+```json
+	{"type": "plugin","id": "npa.couchdb.adapter","version": "1.0.0"}
+```
+
+A basic adapter for the no-SQL Apache CouchDB backend.
+
+Service:
+
+The adapter provides a `'couchdb'` service that support registered Datasources from the `'npa.couchdb.adapter.datasource'` extension point.
+The service interface provides the following methods:
+
+```javascript
+createDatabase = function(reference,callback);
+query = function(reference,query,callback);
+findByPrimaryKey = function(reference,data,callback);
+createRecord = function(reference,data,callback);
+updateRecord = function(reference,data,callback);
+deleteRecord = function(reference,data,callback);
+```
+
+Extension point:
+
+#### npa.couchdb.adapter.datasource
+
+Extensions for this extension point should provide the following declaration:
+
+```json
+{
+	"point": "npa.couchdb.adapter.datasource",
+	"id": "<extension ID>",
+	"reference": "<a simple datasource reference>",
+	"hostname": "localhost",
+	"port": "<the Apache CouchDB database port - optional, defaults to 5984>",
+	"dbname": "<the Apache CouchDB database name>",
+	"username": "<the Apache CouchDB database user's username - optional>",
+	"password": "<the Apache CouchDB database user's password - optional>",
+	"maxPageSize": 500,
+	"environment": {
+		"hostname": "<an environment variable name that take precedence over the hostname attribute - for container deployment>",
+  		"port": "<an environment variable name that take precedence over the port attribute - for container deployment>",
+  		"username": "<an environment variable name that take precedence over the username attribute - for container deployment>",
+  		"password": "<an environment variable name that take precedence over the password attribute - for container deployment>"
+	}
+}
+```
+This registers a Datasource whithin the CouchDB adapter that can be refered to by its `reference` later on.
+
+Example:
+
+```javascript
+const myDsRef = 'myDatasource'; //previously declared using the npa.couchdb.adapter.datasource extension point
+
+plugin.doSomething = function(){
+	let couchService = this.getService(couchdb);
+	couchService.query(myDsRef,{},function(err,records){
+		if(err){
+			plugin.error(JSON.stringify(err));
+		}else{
+			//do something with the records
+		}
+	});
+}
+```
+
+#### npa.crypto
+
+Dependency:
+
+```json
+	{"type": "plugin","id": "npa.crypto","version": "1.0.0"}
+```
+
+A cryptographic facility for NPA using an SHA256 cipher suite.
+
+Service:
+
+The npa.crypto plugin provides a `cryptography` service with the following interface:
+
+```javascript
+encrypt = function(data);
+decrypt = function(encryptedData);
+```
+
+It is usefull to encrypt data in a file or in a JSON document before it is stored into the CouchDB database
+
+#### npa.mail
+
+Dependency:
+
+```json
+	{"type": "plugin","id": "npa.mail","version": "1.0.0"}
+```
+
+A basic `mail` service provider
+
+Service:
+
+The npa.mail plugin provides a `mail` service with the following interface:
+
+```javascript
+sendMail = function(providerId,from,to,subject,content,isHtml,then);
+```
+
+The `providerId` refers to a previously registered mail provider using the npa.mail's `npa.mail.provider` extension point
+
+extension point:
+
+####npa.mail.provider
+
+Extension for this extension point should provide the following declaration:
+
+```json
+{
+	"point": "npa.mail.provider",
+	"id": "<the extension ID>",
+	"type": "SMTP",
+	"host": "<mail provider's host>",
+	"port": <mail provider's port>,
+	"secure": <true/false>,
+	"username": "<mailbox's username>",
+	"password": "<mailbox's password>"
+} 
+```
+
+Example:
+
+```javascript
+const MAIL_PROVIDER = 'SMTP'; //previously declared using the npa.mail.provider extension point
+
+plugin.doSomething = function(ctx){
+	let mailService = this.getService('mail');
+	mailService.sendMail(MAIL_PROVIDER,ctx.from,ctx.to,ctx.subject,ctx.content,true,function(err,response){
+		if(err){
+			plugin.error(JSON.stringify(err));
+		}else{
+			//do something with the response
+		}
+	});
+}
+```
+
 
