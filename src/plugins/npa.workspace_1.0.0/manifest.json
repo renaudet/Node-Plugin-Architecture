@@ -10,12 +10,12 @@
   "extends": [
   	{
   		"point": "npa.log.provider",
-  		"id": "npa.crypto.logger",
+  		"id": "npa.workspace.logger",
   		"dir": "workspace"
   	},
   	{
   		"point": "npa.core.service",
-  		"id": "npa.crypto.service",
+  		"id": "npa.workspace.service",
   		"service": "workspace"
   	}
   ],

@@ -273,7 +273,7 @@ Using  _process.cwd()_  is safe here as the integration runtime itself does not 
 
 ## Base Plugins documentation
 
-### NPA Core / npa.core
+### npa.core
 
 Dependency:
 
@@ -438,7 +438,7 @@ Applications can change this default location by using the `--logs` command-line
 By default, applications are using the `info` logging level. To change to a more precisely defined logging mode, use the `--level` command-line parameter.
 Accepted modes are `info`, `error`, `debug` and `trace`
 
-#### npa.couchdb.adapter
+### npa.couchdb.adapter
 
 Dependency:
 
@@ -506,7 +506,7 @@ plugin.doSomething = function(){
 }
 ```
 
-#### npa.crypto
+### npa.crypto
 
 Dependency:
 
@@ -527,7 +527,7 @@ decrypt = function(encryptedData);
 
 It is usefull to encrypt data in a file or in a JSON document before it is stored into the CouchDB database
 
-#### npa.mail
+### npa.mail
 
 Dependency:
 
@@ -549,7 +549,7 @@ The `providerId` refers to a previously registered mail provider using the npa.m
 
 extension point:
 
-####npa.mail.provider
+#### npa.mail.provider
 
 Extension for this extension point should provide the following declaration:
 
@@ -583,4 +583,123 @@ plugin.doSomething = function(ctx){
 }
 ```
 
+### npa.rest
 
+This plugin provides a basic REST client
+
+Interface:
+
+```javascript
+performRestApiCall = function(restContext,callback);
+```
+
+The restContext is a JSON object providing the following attributes:
+
+```json
+{
+	"host": "<target host>",
+	"port": <target port as an integer>,
+	"uri": "<requested REST call URI>",
+	"secured": <true/false>,
+	"username": "<optional username for BASIC authentication>",
+	"password": "<optional password for BASIC authentication - mandatory if username is present>",
+	"method": "<the HTTP method, one of GET/PUT/POST/DELETE>",
+	"payload": "<optional JSON payload - defaults to {} - ignored for GET/DELETE request types>"
+}
+```
+
+Example:
+
+```javascript
+const REST_CLIENT_PLUGIN_ID = 'npa.rest';
+
+plugin.doSomething = function(ctx){
+	let restClient = this.runtime.getPlugin(REST_CLIENT_PLUGIN_ID);
+	let ctx = {
+		"host": "127.0.0.1",
+		"port": 9080,
+		"uri": "/servlet/MyServlet?param=1234",
+		"method": "GET"
+	}
+	restClient.performRestApiCall(ctx,function(err,response){
+		if(err){
+			plugin.error(JSON.stringify(err));
+		}else{
+			//do something with the response
+		}
+	});
+}
+```
+
+### npa.system.call
+
+This plugin provides a convenient, asynchronous way to execute System calls and monitor the child's process status to access the standard console output.
+
+```javascript
+executeCommand = function(command,detachProcess,onCommandExecutionLaunched,onChildProcessCompleted);
+```
+
+Example:
+
+```javascript
+const SYSTEM_CALL_PLUGIN_ID = 'npa.system.call';
+let processId = 0;
+
+plugin.doSomething = function(){
+	let system = this.runtime.getPlugin(SYSTEM_CALL_PLUGIN_ID);
+	
+	system.executeCommand('ps -ef',false,function(err,pid){
+		if(err){
+			plugin.error(JSON.stringify(err));
+		}else{
+			processId = pid;
+		}
+	},function(){
+		let process = system.process[processId];
+		plugin.info('exit code: '+process.exitCode);
+		for(var i=0;i<process.output.length;i++){
+			plugin.info((i+1)+': '+process.output[i]);
+		}
+	});
+}
+```
+
+### npa.web.stack
+
+This plugin provides a basic web stack for responsive Web applications. The static resources provided are registered with the default path '/'
+
+Included:
+
+```
+bootstrap v5.3.0-alpha1
+jquery v3.6.3
+moment v2.29.4
+CodeMirror v5.44.0
+MD5 by CryptoJS v3.1.2
+```
+
+### npa.workspace
+
+This plugin provides basic local filesystem access for applications. The hierarchy starts with a concept of a Project, then folders and files.
+A Project contains an hidden `.project` file that contains metadata such as the creating date, the owner or the display name if different from the project's own directory name.
+
+Other plugins can use the facility through a service.
+
+Service:
+
+The npa.workspace plugin provides a `workspace` service with the following interface:
+
+```javascript
+createProject = function(projectInfo);
+getProject = function(name);
+deleteProject = function(name,user);
+getProjects = function(filter);
+createFolder = function(project,relativPath);
+deleteResource = function(path);
+createLocalFile = function(relativeFileName,project,content,options={});
+setFileContent = function(workspaceRelativeFileName,content,options={});
+appendToFileContent = function(workspaceRelativeFileName,content,options={});
+getFileContent = function(filePath,options={});
+absolutePath = function(resourcePath);
+renameFile = function(baseDir,oldName,newName);
+```
