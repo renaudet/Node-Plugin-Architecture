@@ -10,7 +10,19 @@ var plugin = new Plugin();
 plugin.providers = {};
 
 plugin.lazzyPlug = function(extenderId,extensionPointConfig){
+	this.trace('adding mail provider from '+extenderId);
+	this.trace(JSON.stringify(extensionPointConfig,null,'\t'));
 	this.providers[extensionPointConfig.type] = extensionPointConfig;
+	if(typeof extensionPointConfig.username!='undefined' && extensionPointConfig.username.startsWith('$')){
+		let envVariableName = extensionPointConfig.username.replace(/$/,'');
+		this.providers[extensionPointConfig.type].username = process.env[envVariableName];
+	}
+	if(typeof extensionPointConfig.password!='undefined' && extensionPointConfig.password.startsWith('$')){
+		let envVariableName = extensionPointConfig.password.replace(/$/,'');
+		this.providers[extensionPointConfig.type].password = process.env[envVariableName];
+	}
+	this.trace('configuration after environment varaible extension:');
+	this.trace(JSON.stringify(this.providers[extensionPointConfig.type],null,'\t'));
 }
 
 plugin.sendMail = function(providerId,from,to,subject,content,isHtml,then){
