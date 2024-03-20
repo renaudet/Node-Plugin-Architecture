@@ -14,11 +14,11 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 	this.trace(JSON.stringify(extensionPointConfig,null,'\t'));
 	this.providers[extensionPointConfig.type] = extensionPointConfig;
 	if(typeof extensionPointConfig.username!='undefined' && extensionPointConfig.username.startsWith('$')){
-		let envVariableName = extensionPointConfig.username.replace(/$/,'');
+		let envVariableName = extensionPointConfig.username.replace(/\$/,'');
 		this.providers[extensionPointConfig.type].username = process.env[envVariableName];
 	}
 	if(typeof extensionPointConfig.password!='undefined' && extensionPointConfig.password.startsWith('$')){
-		let envVariableName = extensionPointConfig.password.replace(/$/,'');
+		let envVariableName = extensionPointConfig.password.replace(/\$/,'');
 		this.providers[extensionPointConfig.type].password = process.env[envVariableName];
 	}
 	this.trace('configuration after environment varaible extension:');

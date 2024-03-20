@@ -252,7 +252,7 @@ function ReactivArea(id,parentDivId,width,height){
 		this.repaint();
 	}
 	uic.repaint = function(){
-		if (this.canvas.getContext){
+		if(this.canvas && this.canvas.getContext){
 			var ctx = this.canvas.getContext('2d');
 		    var width = this.canvas.width;
 			var height = this.canvas.height;
