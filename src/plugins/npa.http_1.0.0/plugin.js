@@ -243,18 +243,22 @@ plugin.checkSessions = function(){
 							plugin.error('sessionStore#get() returned an error:');
 							plugin.error(JSON.stringify(err));
 						}else{
-							plugin.debug('last access: '+sessObj.lastAccess);
-							plugin.debug('session is alive: '+sessObj.alive);
-							if(sessObj.lastAccess && sessObj.alive){
-								var inactivityPeriod = now.diff(sessObj.lastAccess);
-								plugin.debug('inactivity period is: '+inactivityPeriod);
-								if(inactivityPeriod>1000*plugin.config.http.session.expires){
-									plugin.info('-session ID #'+sessionId+' expired (created: '+moment(sessObj.created).format('HH:mm:ss')+')... Cleaning up!');
+							if(typeof sessObj!='undefined' && sessObj!=null){
+								plugin.debug('last access: '+sessObj.lastAccess);
+								plugin.debug('session is alive: '+sessObj.alive);
+								if(sessObj.lastAccess && sessObj.alive){
+									var inactivityPeriod = now.diff(sessObj.lastAccess);
+									plugin.debug('inactivity period is: '+inactivityPeriod);
+									if(inactivityPeriod>1000*plugin.config.http.session.expires){
+										plugin.info('-session ID #'+sessionId+' expired (created: '+moment(sessObj.created).format('HH:mm:ss')+')... Cleaning up!');
+										plugin.sessionStore.destroy(sessionId);
+									}
+								}else{
+									plugin.info('-session ID #'+sessionId+' is a ghost - cleaning');
 									plugin.sessionStore.destroy(sessionId);
 								}
 							}else{
-								plugin.info('-session ID #'+sessionId+' is a ghost - cleaning');
-								plugin.sessionStore.destroy(sessionId);
+								plugin.debug('no session found with id #'+sessionId+' - assume it was just deleted');
 							}
 						}
 						checkSessionsById(sessionIdLst,index+1,then);
