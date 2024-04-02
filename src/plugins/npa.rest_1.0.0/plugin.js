@@ -26,7 +26,7 @@ plugin.performRestApiCall = function(restContext,onRestInvocationCompletedCallba
 	this.debug('url: '+url);
 	this.debug('method: '+restContext.method);
 	restContext.url = url;
-	if(typeof restContext.username!='undefined'){
+	if(typeof restContext.username!='undefined' && restContext.username.length>0){
 		restContext.securityContext = {"auth": {"username": restContext.username,"password": restContext.password}};
 	}else{
 		restContext.securityContext = {};
