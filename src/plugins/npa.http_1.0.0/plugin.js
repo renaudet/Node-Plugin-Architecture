@@ -32,7 +32,8 @@ plugin.beforeExtensionPlugged = function(){
 	if(typeof this.config.http.session!='undefined' && this.config.http.session.enabled){
 		let sessionConfig = this.config.http.session;
 		var session = require('express-session');
-		if(sessionConfig.persistent){
+		let persistentValue = this.getConfigValue('http.session.persistent');
+		if(persistentValue=='true' || persistentValue==true){
 			if('CouchSessionStore'==sessionConfig.store){
 				let StoreClass = require('./couchdbSessionStore.js');
 				let couchService = plugin.getService(COUCH_SERVICE_ID);

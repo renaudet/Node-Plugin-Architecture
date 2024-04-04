@@ -15,7 +15,7 @@
 	    "expires_": 180,
 	    "expires": 900,
 	    "checkperiod": 120,
-	    "persistent": true,
+	    "persistent": "$PERSIST_HTTP_SESSION",
 	    "store": "CouchSessionStore"
   	}
   },

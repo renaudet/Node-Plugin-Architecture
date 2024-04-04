@@ -25,6 +25,26 @@ class Plugin {
 		this.config = config;
 		this.runtime = runtime;
 	}
+	getConfigValue(relativJsonPath){
+		let config = this.config;
+		try{
+			const configValue = eval(`config.${relativJsonPath}`);
+			if(typeof configValue!='undefined' && configValue!=null){
+				if(typeof configValue=='string' && configValue.startsWith('$')){
+					let envVarName = configValue.replace(/\$/,'');
+					return process.env[envVarName];
+				}else{
+					return configValue;
+				}
+			}else{
+				console.log('ERROR: configuration mistake for plugin '+this.getId()+' - configuration value does not exists for path '+relativJsonPath);
+				return null;
+			}
+		}catch(e){
+			console.log('ERROR: configuration mistake for plugin '+this.getId()+' - unable to read configuration value for path '+relativJsonPath);
+			return null;
+		}
+	}
 	beforeExtensionPlugged(){
 	}
 	onConfigurationLoaded(){

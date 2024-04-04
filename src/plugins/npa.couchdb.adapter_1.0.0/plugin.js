@@ -181,6 +181,7 @@ plugin.query = function(reference,query,callback){
 		callback(null,response.data.docs);
 	})
 	.catch(function (error) {
+		console.log(error);
 		if(error.response){
 			plugin.error(JSON.stringify(error.response.data,null,'\t'));
 			plugin.debug('<-query()');
