@@ -219,7 +219,7 @@ plugin.startListener = function(requiredPort=null){
 	
 	if(typeof this.config.http.session!='undefined' && this.config.http.session.enabled){
 		let sessionConfig = this.config.http.session;
-		setTimeout(function(){ plugin.checkSessions(); },sessionConfig.checkperiod*1000);
+		setTimeout(function(){ plugin.checkSessions(); },plugin.getConfigValue('http.session.checkperiod','integer')*1000);
 	}
 	this.trace('<-startListener()');
 }
@@ -250,7 +250,7 @@ plugin.checkSessions = function(){
 								if(sessObj.lastAccess && sessObj.alive){
 									var inactivityPeriod = now.diff(sessObj.lastAccess);
 									plugin.debug('inactivity period is: '+inactivityPeriod);
-									if(inactivityPeriod>1000*plugin.config.http.session.expires){
+									if(inactivityPeriod>1000*plugin.getConfigValue('http.session.expires','integer')){
 										plugin.info('-session ID #'+sessionId+' expired (created: '+moment(sessObj.created).format('HH:mm:ss')+')... Cleaning up!');
 										plugin.sessionStore.destroy(sessionId);
 									}

@@ -25,23 +25,51 @@ class Plugin {
 		this.config = config;
 		this.runtime = runtime;
 	}
-	getConfigValue(relativJsonPath){
+	getConfigValue(relativJsonPath,type='string'){
 		let config = this.config;
 		try{
 			const configValue = eval(`config.${relativJsonPath}`);
 			if(typeof configValue!='undefined' && configValue!=null){
 				if(typeof configValue=='string' && configValue.startsWith('$')){
-					let envVarName = configValue.replace(/\$/,'');
-					return process.env[envVarName];
+					let tokens = configValue.split(',');
+					let envVarName = tokens[0].replace(/\$/,'');
+					let defaultValue = '';
+					if(tokens.length==2){
+						defaultValue = tokens[1];
+					}
+					let envValue = process.env[envVarName];
+					if(typeof envValue!='undefined'){
+						if('string'==type){
+							return envValue;
+						}else if('integer'==type){
+							return parseInt(envValue);
+						}else if('boolean'==type){
+							return 'true'==envValue;
+						}else{
+							console.log('ERROR: plugin#getConfigValue() unsupported type "'+type+'" for configuration path '+relativJsonPath);
+							return null;
+						}
+					}else{
+						if('string'==type){
+							return defaultValue;
+						}else if('integer'==type){
+							return parseInt(defaultValue);
+						}else if('boolean'==type){
+							return 'true'==defaultValue;
+						}else{
+							console.log('ERROR: plugin#getConfigValue() unsupported type "'+type+'" for configuration path '+relativJsonPath);
+							return null;
+						}
+					}
 				}else{
 					return configValue;
 				}
 			}else{
-				console.log('ERROR: configuration mistake for plugin '+this.getId()+' - configuration value does not exists for path '+relativJsonPath);
+				console.log('ERROR: plugin#getConfigValue() configuration mistake for plugin '+this.getId()+' - configuration value does not exists for path '+relativJsonPath);
 				return null;
 			}
 		}catch(e){
-			console.log('ERROR: configuration mistake for plugin '+this.getId()+' - unable to read configuration value for path '+relativJsonPath);
+			console.log('ERROR: plugin#getConfigValue() configuration mistake for plugin '+this.getId()+' - unable to read configuration value for path '+relativJsonPath);
 			return null;
 		}
 	}
