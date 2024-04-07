@@ -7,6 +7,10 @@
 		{
 			"id": "npa.ui.tools",
 			"location": "D:/Git/npa-ui-tools/src/plugins"
+		},
+		{
+			"id": "apaf",
+			"location": "D:/Git/apaf/src/plugins"
 		}
 	]
 }

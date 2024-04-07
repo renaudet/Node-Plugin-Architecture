@@ -12,10 +12,9 @@
   		"enabled": true,
 	    "name": "NPA",
 	    "secret": "npa4node",
-	    "expires_": 180,
-	    "expires": 900,
-	    "checkperiod": 120,
-	    "persistent": true,
+	    "expires": "$HTTP_SESSION_TIMEOUT,900",
+	    "checkperiod": "$HTTP_SESSION_CLEANER_TIMEOUT,120",
+	    "persistent": "$PERSIST_HTTP_SESSION,false",
 	    "store": "CouchSessionStore"
   	}
   },
