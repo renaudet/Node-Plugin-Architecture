@@ -270,12 +270,12 @@ plugin.checkSessions = function(){
 			}
 			checkSessionsById(sessionIdTable,0,function(){
 				plugin.trace('Session reaper thread end');
-				setTimeout(function(){ plugin.checkSessions(); },1000*plugin.config.http.session.checkperiod);
+				setTimeout(function(){ plugin.checkSessions(); },plugin.getConfigValue('http.session.checkperiod','integer')*1000);
 			});
 		});
 	}else{
 		this.trace('Session reaper thread end');
-		setTimeout(function(){ plugin.checkSessions(); },1000*plugin.config.http.session.checkperiod);
+		setTimeout(function(){ plugin.checkSessions(); },plugin.getConfigValue('http.session.checkperiod','integer')*1000);
 	}
 }
 

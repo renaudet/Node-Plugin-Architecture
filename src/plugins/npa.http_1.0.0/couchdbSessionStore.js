@@ -189,6 +189,7 @@ class CouchSessionStore extends Store{
 							if(DEBUG_MODE) console.log('session is new - creating');
 							factory.backend.createRecord(SESSION_DATASOURCE_REFERENCE,{"id": sid,"data": session},function(err,record){
 								if(err){
+									console.log(err);
 									if(DEBUG_MODE) console.log('unable to save session ID#'+sid);
 									if(DEBUG_MODE) console.log('error is '+err);
 									delete factory.locks[sid];
