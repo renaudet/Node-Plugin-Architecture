@@ -5,7 +5,7 @@
   "plugin": "plugin.js",
   "http": {
   	"port": 9080,
-  	"secure": false,
+  	"secure": "$ENABLE_SSL,false",
   	"corsEnabled": true,
   	"supportedLocale": "en-US,en,fr-FR,fr",
   	"session": {
@@ -16,6 +16,10 @@
 	    "checkperiod": "$HTTP_SESSION_CLEANER_TIMEOUT,120",
 	    "persistent": "$PERSIST_HTTP_SESSION,false",
 	    "store": "CouchSessionStore"
+  	},
+  	"security": {
+  		"privateKeyFile": "$SSL_PRIVATE_KEY,./ssl/privkey.pem",
+  		"certificate": "$SSL_CERTIFICATE,./ssl/certificate.pem"
   	}
   },
   "requires": [

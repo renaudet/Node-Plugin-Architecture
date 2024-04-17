@@ -214,8 +214,20 @@ plugin.startListener = function(requiredPort=null){
 	if(typeof process.env[ENV_PORT]!='undefined'){
 		port = process.env[ENV_PORT];
 	}
-	this.info('starting the HTTP listener on port '+port);
-	this.endpoint.listen(port);
+	
+	if(plugin.getConfigValue('http.secure','boolean')){
+		const https = require('https');
+		const fs = require('fs');
+		this.info('starting the HTTPS listener on port '+port);
+		var options = {
+		    key: fs.readFileSync(plugin.getConfigValue('http.security.privateKeyFile','string')),
+		    cert: fs.readFileSync(plugin.getConfigValue('http.security.certificate','string'))
+		};
+		https.createServer(options, this.endpoint).listen(port);
+	}else{
+		this.info('starting the HTTP listener on port '+port);
+		this.endpoint.listen(port);
+	}
 	
 	if(typeof this.config.http.session!='undefined' && this.config.http.session.enabled){
 		let sessionConfig = this.config.http.session;
