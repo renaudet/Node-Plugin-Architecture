@@ -5,8 +5,13 @@
  
 const Plugin = require('../../core/plugin.js');
 const axios = require('axios');
+const https = require('https');
 
 var plugin = new Plugin();
+plugin.agent = new https.Agent({
+ rejectUnauthorized: false
+});
+
 /*
  * restContext:
   {
@@ -26,12 +31,16 @@ plugin.performRestApiCall = function(restContext,onRestInvocationCompletedCallba
 	this.debug('url: '+url);
 	this.debug('method: '+restContext.method);
 	restContext.url = url;
-	if(typeof restContext.username!='undefined' && restContext.username.length>0){
-		restContext.securityContext = {"auth": {"username": restContext.username,"password": restContext.password}};
-	}else{
-		restContext.securityContext = {};
+	if(typeof restContext.options=='undefined'){
+		restContext.options = {};
 	}
-	this.debug('securityContext: '+JSON.stringify(restContext.securityContext));
+	if(restContext.secured && restContext.acceptCertificate){
+		restContext.options.httpsAgent = this.agent;
+	}
+	if(typeof restContext.username!='undefined' && restContext.username.length>0){
+		restContext.options.auth = {"username": restContext.username,"password": restContext.password};
+	}
+	this.debug('securityContext: '+JSON.stringify(restContext.options.auth));
 	if('GET'==restContext.method){
 		this.performGetRestApiCall(restContext,onRestInvocationCompletedCallback);
 	}else
@@ -47,37 +56,37 @@ plugin.performRestApiCall = function(restContext,onRestInvocationCompletedCallba
 }
 
 plugin.performGetRestApiCall = function(restContext,onRestInvocationCompletedCallback){
-	axios.get(restContext.url,restContext.securityContext)
+	axios.get(restContext.url,restContext.options)
 	.then(function (response) {
 		try{
-			onRestInvocationCompletedCallback(null,response.data);
+			onRestInvocationCompletedCallback(null,response);
 		}catch(e){
 			console.log(e);
 		}
 	})
 	.catch(function (error) {
 		plugin.error('GET from url: '+restContext.url);
-		plugin.error(JSON.stringify(error));
+		plugin.error(JSON.stringify(error,null,'\t'));
 		onRestInvocationCompletedCallback('REST invocation failed for '+restContext.url,error);//error.response.data
 	});
 }
 
 plugin.performPostRestApiCall = function(restContext,onRestInvocationCompletedCallback){
-	axios.post(restContext.url,restContext.payload,restContext.securityContext)
+	axios.post(restContext.url,restContext.payload,restContext.options)
 	.then(function (response) {
-		onRestInvocationCompletedCallback(null,response.data);
+		onRestInvocationCompletedCallback(null,response);
 	})
 	.catch(function (error) {
 		plugin.error('POST from url: '+restContext.url);
-		plugin.error(JSON.stringify(error));
+		plugin.error(JSON.stringify(error,null,'\t'));
 		onRestInvocationCompletedCallback('REST invocation failed for '+restContext.url,error);//error.response.data
 	});
 }
 
 plugin.performPutRestApiCall = function(restContext,onRestInvocationCompletedCallback){
-	axios.put(restContext.url,restContext.payload,restContext.securityContext)
+	axios.put(restContext.url,restContext.payload,restContext.options)
 	.then(function (response) {
-		onRestInvocationCompletedCallback(null,response.data);
+		onRestInvocationCompletedCallback(null,response);
 	})
 	.catch(function (error) {
 		plugin.error('PUT from url: '+restContext.url);
@@ -87,9 +96,9 @@ plugin.performPutRestApiCall = function(restContext,onRestInvocationCompletedCal
 }
 
 plugin.performDeleteRestApiCall = function(restContext,onRestInvocationCompletedCallback){
-	axios.delete(restContext.url,{},restContext.securityContext)
+	axios.delete(restContext.url,{},restContext.options)
 	.then(function (response) {
-		onRestInvocationCompletedCallback(null,response.data);
+		onRestInvocationCompletedCallback(null,response);
 	})
 	.catch(function (error) {
 		plugin.error('DELETE from url: '+restContext.url);
