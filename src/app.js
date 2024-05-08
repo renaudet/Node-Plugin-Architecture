@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /*
  * app.js - launcher for a Node.js Plugin-based application
  * Copyright 2023 Nicolas Renaudet - All rights reserved
