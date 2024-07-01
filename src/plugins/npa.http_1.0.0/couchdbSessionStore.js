@@ -119,7 +119,6 @@ class CouchSessionStore extends Store{
 			}
 			if(queue.isEmpty()){
 				queue.push(callback);
-				let factory = this;
 				if(DEBUG_MODE) console.log('lookupSessionRecord('+sid+')');
 				this.lookupSessionRecord(sid,function(err,sessionRecord){
 					if(err || sessionRecord==null){
