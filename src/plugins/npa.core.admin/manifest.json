@@ -1,0 +1,32 @@
+{
+  "id": "npa.core.admin",
+  "name": "NPA Core Administration plugin",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.http","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.core.admin.logger",
+  		"dir": "npa.core.admin"
+  	},
+  	{
+  		"point": "npa.http.router",
+  		"id": "npa.core.admin.router",
+  		"path": "/npa-admin"
+  	},
+  	{
+  		"point": "npa.http.handler",
+  		"id": "npa.core.admin.check.handler",
+  		"router": "npa.core.admin.router",
+  		"method": "POST",
+  		"schema": "/checkInstallation",
+  		"handler": "checkInstallationHandler"
+  	}
+  ],
+  "provides": [
+  ]
+}
