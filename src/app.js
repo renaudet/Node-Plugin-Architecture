@@ -5,8 +5,10 @@
  */
 
 const args = require('yargs').argv;
-const config = require('./appConfig.json');
 const Runtime = require('./core/integrationRuntime');
+
+const ENV_INSTALLATION = 'APAF_INSTALLATION';
+const ARGV_INSTALLATION = 'installation';
 
 const ENV_APPLICATION = 'APPLICATION';
 const ARGV_APPLICATION = 'application';
@@ -26,6 +28,25 @@ const ARGV_PORT = 'port';
 const ENV_NAME = 'APPLICATION_NAME';
 const ARGV_NAME = 'name';
 const PROCESS_NAME_DEFAULT_VALUE = APPLICATION_DEFAULT_VALUE;
+
+var config = {
+	"sites": [
+		{
+			"id": "default",
+			"location": "./plugins"
+		}
+	]
+};
+
+if(!process.env[ENV_INSTALLATION]){
+	if(args[ARGV_INSTALLATION]){
+		config = require(args[ARGV_INSTALLATION]);
+	}else{
+		config = require('./appConfig.json');
+	}
+}else{
+	config = require(process.env[ENV_INSTALLATION]);
+}
  
 // get parameters from command-line to set environment variables
 
