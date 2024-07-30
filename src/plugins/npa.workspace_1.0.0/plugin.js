@@ -109,9 +109,13 @@ plugin.setFileContent = function(workspaceRelativeFileName,content,options={}){
 	this.trace('->setFileContent()');
 	this.debug('workspaceRelativeFileName: '+workspaceRelativeFileName);
 	let absolutePath = this.location+'/'+workspaceRelativeFileName;
+	if(options && options.recursive){
+		let folder = absolutePath.substring(0,absolutePath.lastIndexOf('/'));
+		fs.mkdirSync(folder,{"recursive": true});
+	}
 	var stream = fs.createWriteStream(absolutePath, {flags:'w'});
 	stream.on('error', function (err) {
-		plugin.error('in setFileContent()');
+		plugin.error('in npa.workspace.Plugin#setFileContent()');
 		plugin.error(JSON.stringify(err));
 	});
 	if(options && options.encoding){
