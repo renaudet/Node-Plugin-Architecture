@@ -27,8 +27,9 @@ plugin.folderContent = function(relativePath,showHiddenFile=false){
 	for(var i=0;i<entries.length;i++){
 		var dirEntry = entries[i];
 		if(dirEntry.isFile()){
+			var stat = fs.statSync(folderAbsolutePath+'/'+dirEntry.name);
 			if(showHiddenFile || !dirEntry.name.startsWith('.')){
-				folderEntries.push({"name": dirEntry.name,"type": "file"});
+				folderEntries.push({"name": dirEntry.name,"type": "file","size": stat.size,"lastModified": stat.mtime,"created": stat.birthtime});
 			}
 		}else{
 			folderEntries.push({"name": dirEntry.name,"type": "directory"});
@@ -214,6 +215,14 @@ plugin.getFileContent = function(filePath,options={}){
 	var buffer = fs.readFileSync(absoluteFilePath,options);
 	this.trace('<-getFileContent()');
 	return buffer.toString();
+}
+
+plugin.getFileInfo = function(filePath){
+	this.trace('->getFileInfo()');
+	let absoluteFilePath = 	this.location+'/'+filePath;
+	var stat = fs.statSync(absoluteFilePath);
+	this.trace('<-getFileInfo()');
+	return stat;
 }
 
 plugin.absolutePath = function(resourcePath){

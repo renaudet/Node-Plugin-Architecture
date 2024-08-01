@@ -20,13 +20,17 @@ ul.tree, .tree {
 .caret {
   cursor: pointer;
   user-select: none; /* Prevent text selection */
-  padding-right: 10px;
+  padding-right: 5px;
+  padding-left: 5px;
+  padding-bottom: 3px;
 }
 
 .leaf {
   cursor: pointer;
   user-select: none; /* Prevent text selection */
-  padding-right: 10px;
+  padding-right: 5px;
+  padding-left: 5px;
+  padding-bottom: 3px;
 }
 
 /* Create the caret/arrow with a unicode, and style it 25B6*/
@@ -56,6 +60,7 @@ ul.tree, .tree {
 
 .leaf:hover {
   background-color: #86b8ea;
+  color: #ffffff;
 }
 
 .caret:hover {
