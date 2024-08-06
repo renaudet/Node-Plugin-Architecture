@@ -7,10 +7,19 @@ const Plugin = require('../../core/plugin.js');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const PROTOCOL = 'http://';
+const ENV_VAR_DB_PREFIX = 'COUCH_DATABASE_PREFIX';
 
 var plugin = new Plugin();
 plugin.datasources = {};
 plugin.baseUrlCache = {};
+plugin.dbPrefix = '';
+
+plugin.beforeExtensionPlugged = function(){
+	if(typeof process.env[ENV_VAR_DB_PREFIX]!='undefined'){
+		this.dbPrefix = process.env[ENV_VAR_DB_PREFIX];
+	}
+	this.info('CouchDB persistence layer initialized with database prefix "'+this.dbPrefix+'"');
+}
 
 plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 	if('npa.couchdb.adapter.datasource'==extensionPointConfig.point){
@@ -72,12 +81,14 @@ plugin.makeBaseUrl = function(ds){
 		}else{
 			url += ':5984';
 		}
+		url += '/';
+		url += this.dbPrefix;
 		if(typeof ds.environment!='undefined' && 
 		   typeof ds.environment.dbname!='undefined' && 
 		   typeof process.env[ds.environment.dbname]!='undefined'){
-			url += '/'+process.env[ds.environment.dbname];
+			url += process.env[ds.environment.dbname];
 		}else{
-			url += '/'+ds.dbname;
+			url += ds.dbname;
 		}
 		this.baseUrlCache[ds.reference] = url;
 		return url;
@@ -150,6 +161,37 @@ plugin.createDatabase = function(reference,callback){
 			callback(error.response.data,false);
 		}else{
 			plugin.debug('<-createDatabase()');
+			callback(error,false);
+		}
+	});
+}
+
+/*
+ * Delete an existing Couch database
+ */
+plugin.deleteDatabase = function(reference,callback){
+	this.debug('->deleteDatabase()');
+	this.trace('reference: '+reference);
+	var datasource = this.getDatasource(reference);
+	var url= this.makeBaseUrl(datasource);
+	this.trace('database URL: '+url);
+	axios.delete(url, {})
+	.then(function (response) {
+		var result = response.data;
+		if(result && result.error){
+			plugin.debug('<-deleteDatabase()');
+			callback(result.error,false);
+		}else{
+			plugin.debug('<-deleteDatabase()');
+			callback(null,true);
+		}
+	})
+	.catch(function (error) {
+		if(error.response && error.response.data){
+			plugin.debug('<-deleteDatabase()');
+			callback(error.response.data,false);
+		}else{
+			plugin.debug('<-deleteDatabase()');
 			callback(error,false);
 		}
 	});

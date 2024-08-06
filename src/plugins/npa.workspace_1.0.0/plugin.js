@@ -27,8 +27,9 @@ plugin.folderContent = function(relativePath,showHiddenFile=false){
 	for(var i=0;i<entries.length;i++){
 		var dirEntry = entries[i];
 		if(dirEntry.isFile()){
+			var stat = fs.statSync(folderAbsolutePath+'/'+dirEntry.name);
 			if(showHiddenFile || !dirEntry.name.startsWith('.')){
-				folderEntries.push({"name": dirEntry.name,"type": "file"});
+				folderEntries.push({"name": dirEntry.name,"type": "file","size": stat.size,"lastModified": stat.mtime,"created": stat.birthtime});
 			}
 		}else{
 			folderEntries.push({"name": dirEntry.name,"type": "directory"});
@@ -109,9 +110,13 @@ plugin.setFileContent = function(workspaceRelativeFileName,content,options={}){
 	this.trace('->setFileContent()');
 	this.debug('workspaceRelativeFileName: '+workspaceRelativeFileName);
 	let absolutePath = this.location+'/'+workspaceRelativeFileName;
+	if(options && options.recursive){
+		let folder = absolutePath.substring(0,absolutePath.lastIndexOf('/'));
+		fs.mkdirSync(folder,{"recursive": true});
+	}
 	var stream = fs.createWriteStream(absolutePath, {flags:'w'});
 	stream.on('error', function (err) {
-		plugin.error('in setFileContent()');
+		plugin.error('in npa.workspace.Plugin#setFileContent()');
 		plugin.error(JSON.stringify(err));
 	});
 	if(options && options.encoding){
@@ -210,6 +215,14 @@ plugin.getFileContent = function(filePath,options={}){
 	var buffer = fs.readFileSync(absoluteFilePath,options);
 	this.trace('<-getFileContent()');
 	return buffer.toString();
+}
+
+plugin.getFileInfo = function(filePath){
+	this.trace('->getFileInfo()');
+	let absoluteFilePath = 	this.location+'/'+filePath;
+	var stat = fs.statSync(absoluteFilePath);
+	this.trace('<-getFileInfo()');
+	return stat;
 }
 
 plugin.absolutePath = function(resourcePath){
