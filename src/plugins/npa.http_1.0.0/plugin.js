@@ -17,6 +17,7 @@ plugin.routers = {};
 plugin.commands = [];
 plugin.homePage = null;
 plugin.sessionStore = null;
+plugin.providers = {"routers": {},"apis": []};
 
 plugin.beforeExtensionPlugged = function(){
 	process.title = process.env[ENV_NAME];
@@ -104,6 +105,7 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 			plugin.endpoint.use(extensionPointConfig.path,plugin.routers[extensionPointConfig.id]);
 		}
 		this.commands.push(command);
+		this.providers.routers[extensionPointConfig.id] = extensionPointConfig.path;
 	}
 	if('npa.http.handler'==extensionPointConfig.point){
 		if('GET'==extensionPointConfig.method){
@@ -162,6 +164,7 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 			}
 			this.commands.push(command);
 		}
+		this.providers.apis.push({"pluginId": extenderId,"api": extensionPointConfig});
 	}
 	if('npa.http.static'==extensionPointConfig.point){
 		var path = extensionPointConfig.path;

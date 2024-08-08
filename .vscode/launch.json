@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Start the NPA Test Server",
+            "name": "Start the APAF Test Server",
             "program": "${workspaceFolder}\\src\\app.js",
             "request": "launch",
             "skipFiles": [
@@ -10,13 +10,20 @@
             ],
             "type": "node",
             "cwd": "${workspaceFolder}\\src",
-            "args": ["--application","test","--logs","C:/tmp/NPA","--level","fine","--port","9090","--name","NPA Test Server"],
+            "args": ["--application","apaf","--logs","C:/tmp/NPA/logs","--level","fine","--port","9090","--name","All Purpose Application Framework"],
             "env": {
-                "COUCH_DB_HOST": "127.0.0.1",
-                "COUCH_DB_USER": "admin",
-                "COUCH_DB_USER_PASSWD": "admin4couch",
-                "COUCH_DB_BASE": "npa_test",
-                "NODE_PATH": "${workspaceFolder}\\src"
+                "APAF_COUCH_DB_HOST": "127.0.0.1",
+                "APAF_COUCH_DB_USER": "admin",
+                "APAF_COUCH_DB_USER_PASSWD": "admin4couch",
+                "NODE_PATH": "${workspaceFolder}\\src\\node_modules",
+                "ENABLE_SSL": false,
+                "PERSIST_HTTP_SESSION": false,
+                "COUCH_DATABASE_PREFIX": "",
+                "WORKSPACE_LOC": "C:/tmp/NPA/workspace",
+                "SMTP_USER": "nicolas.renaudet",
+                "SMTP_PASSWD": "Orange4me!",
+                "REGISTRY_HOST": "192.168.1.2",
+                "REGISTRY_PORT": "5010"
             }
         }
     ]

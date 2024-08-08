@@ -36,7 +36,8 @@
   		"router": "npa.default.application.router",
   		"method": "GET",
   		"schema": "/sayHello",
-  		"handler": "helloRequestHandler"
+  		"handler": "helloRequestHandler",
+		"description": "Hello, World! servlet for the default APAF Application"
   	}
   ],
   "provides": [

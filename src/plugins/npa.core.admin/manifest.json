@@ -24,7 +24,8 @@
   		"router": "npa.core.admin.router",
   		"method": "POST",
   		"schema": "/checkInstallation",
-  		"handler": "checkInstallationHandler"
+  		"handler": "checkInstallationHandler",
+		"description": "Check if a given plugin or a set of plugin is installed"
   	}
   ],
   "provides": [
