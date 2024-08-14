@@ -25,7 +25,8 @@
   		"method": "POST",
   		"schema": "/checkInstallation",
   		"handler": "checkInstallationHandler",
-		"description": "Check if a given plugin or a set of plugin is installed"
+		"description": "Check if a given plugin or a set of plugin is installed",
+		"input": {"pluginId": "some.plugin.id"}
   	}
   ],
   "provides": [

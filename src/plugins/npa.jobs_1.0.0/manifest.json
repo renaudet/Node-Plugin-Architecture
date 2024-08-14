@@ -1,0 +1,24 @@
+{
+  "id": "npa.jobs",
+  "name": "Job API support plugin",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.core","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.jobs.logger",
+  		"dir": "npa.jobs"
+  	},
+  	{
+  		"point": "npa.core.service",
+  		"id": "npa.jobs.service",
+  		"service": "jobs"
+  	}
+  ],
+  "provides": [
+  ]
+}
