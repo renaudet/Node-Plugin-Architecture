@@ -6,9 +6,9 @@
 const Plugin = require('../../core/plugin.js');
 const { v4: uuidv4 } = require('uuid');
 const moment = require('moment');
-const DATE_TIME_FORMAT = 'YYYY/MM/DD HH:mm:ss';
-const JOB_CHECK_LOOP_TIMEOUT = 30*1000;
-const JOB_EXPIRATION_TIMEOUT = 60*1000;
+const RUNTIME_PROPERTIES_SERVICE_NAME = 'properties';
+//const JOB_CHECK_LOOP_TIMEOUT = 30*1000;
+//const JOB_EXPIRATION_TIMEOUT = 60*1000;
 const STATUS_PENDING = 'pending';
 const STATUS_ONGOING = 'ongoing';
 const STATUS_COMPLETED = 'completed';
@@ -33,7 +33,9 @@ plugin.jobTable = {};
 
 plugin.onConfigurationLoaded = function(){
     this.debug('->onConfigurationLoaded()');
-    setTimeout(function(){ plugin.checkJobExpiration();},JOB_CHECK_LOOP_TIMEOUT);
+    let propService = this.getService(RUNTIME_PROPERTIES_SERVICE_NAME);
+    let timeout = propService.getProperty('npa.jobs.property.timeout');
+    setTimeout(function(){ plugin.checkJobExpiration();},timeout);
     this.debug('<-onConfigurationLoaded()');
 }
 
@@ -101,22 +103,24 @@ plugin.updateJob = function(job){
 plugin.checkJobExpiration = function(){
     this.debug('->checkJobExpiration()');
     let jobsToDelete = [];
+    let propService = this.getService(RUNTIME_PROPERTIES_SERVICE_NAME);
     let now = moment();
     for(var jobId in this.jobTable){
         let job = this.jobTable[jobId];
+        let expirationTimeout = propService.getProperty('job.expiration.timeout');
         if('pending'==job.status || 'ongoing'==job.status || 'setRollbackOnly'==job.status){
             if('setRollbackOnly'==job.status){
                 this.debug('job id #'+jobId+' marked as setRollbackOnly - terminating');
                 job.status = STATUS_TERMINATED;
                 job.endTime = now;
             }else{
-                if(now.diff(job.revalidationTime)>=JOB_EXPIRATION_TIMEOUT){
+                if(now.diff(job.revalidationTime)>=expirationTimeout){
                     this.debug('job id #'+jobId+' was not revalidated for 10 min. - marking as setRollbackOnly');
                     job.status = STATUS_SETROLLBACKONLY;
                 }
             }
         }else{
-            if(now.diff(job.endTime)>=JOB_EXPIRATION_TIMEOUT){
+            if(now.diff(job.endTime)>=expirationTimeout){
                 this.debug('job id #'+jobId+' expired');
                 jobsToDelete.push(jobId);
             }
@@ -129,7 +133,8 @@ plugin.checkJobExpiration = function(){
         delete this.jobTable[toDeleteJobId];
     }
     this.debug('<-checkJobExpiration()');
-    setTimeout(function(){ plugin.checkJobExpiration();},JOB_CHECK_LOOP_TIMEOUT);
+    let timeout = propService.getProperty('npa.jobs.property.timeout');
+    setTimeout(function(){ plugin.checkJobExpiration();},timeout);
 }
 
 
