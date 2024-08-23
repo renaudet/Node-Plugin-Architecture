@@ -24,10 +24,6 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
     this.trace('->lazzyPlug('+extenderId+','+extensionPointConfig.point+')');
     if('npa.runtime.property.provider'==extensionPointConfig.point){
         this.debug('contribution: '+JSON.stringify(extensionPointConfig));
-        /*let propClone = Object.assign({},extensionPointConfig);
-        delete propClone.point;
-        propClone.set = moment();
-        this.properties[extensionPointConfig.name] = extensionPointConfig;*/
         this.newProperty(extensionPointConfig);
     }
     this.trace('<-lazzyPlug()');
@@ -91,6 +87,20 @@ plugin.setProperty = function(propertyName,value){
     }else{
         this.trace('<-setProperty()');
         return undefined;
+    }
+}
+
+plugin.lockProperty = function(propertyName){
+    this.trace('->lockProperty('+propertyName+')');
+    let propStruct = this.properties[propertyName];
+    if(typeof propStruct!='undefined'){
+        if(!propStruct.locked){
+            propStruct.set = moment();
+            propStruct.locked = true;
+        }
+        this.trace('<-lockProperty()');
+    }else{
+        this.trace('<-lockProperty()');
     }
 }
 

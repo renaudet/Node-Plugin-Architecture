@@ -10,6 +10,7 @@ const COUCH_SERVICE_ID = 'couchdb';
 const bodyParser = require('body-parser');
 const ENV_PORT = 'PORT';
 const ENV_NAME = 'APPLICATION_NAME';
+const RUNTIME_PROPERTIES_SERVICE_NAME = 'properties';
 
 var plugin = new Plugin();
 plugin.endpoint = null;
@@ -218,7 +219,13 @@ plugin.startListener = function(requiredPort=null){
 		port = process.env[ENV_PORT];
 	}
 	
+    let propService = this.getService(RUNTIME_PROPERTIES_SERVICE_NAME);
+    propService.setProperty('http.service.port',port);
+    propService.lockProperty('http.service.port');
+	
 	if(plugin.getConfigValue('http.secure','boolean')){
+	    propService.setProperty('http.service.ssl.enabled',true);
+	    propService.lockProperty('http.service.ssl.enabled');
 		const https = require('https');
 		const fs = require('fs');
 		this.info('starting the HTTPS listener on port '+port);
@@ -228,6 +235,7 @@ plugin.startListener = function(requiredPort=null){
 		};
 		https.createServer(options, this.endpoint).listen(port);
 	}else{
+	    propService.lockProperty('http.service.ssl.enabled');
 		this.info('starting the HTTP listener on port '+port);
 		this.endpoint.listen(port);
 	}

@@ -25,7 +25,8 @@
   "requires": [
   	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
   	{"type": "plugin","id": "npa.core","version": "1.0.0"},
-  	{"type": "plugin","id": "npa.couchdb.adapter","version": "1.0.0"}
+  	{"type": "plugin","id": "npa.couchdb.adapter","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.runtime.props","version": "1.0.0"}
   ],
   "extends": [
   	{
@@ -52,6 +53,24 @@
 	  		"username": "NPA_SESSIONS_COUCH_DB_USER",
 	  		"password": "NPA_SESSIONS_COUCH_DB_USER_PASSWD"
   		}
+  	},
+  	{
+  		"point": "npa.runtime.property.provider",
+  		"id": "npa.http.property.port",
+		"name": "http.service.port",
+		"description": "TCP Port for the HTTP Service",
+		"type": "int",
+		"value": 9080,
+		"locked": false
+  	},
+  	{
+  		"point": "npa.runtime.property.provider",
+  		"id": "npa.http.property.ssl",
+		"name": "http.service.ssl.enabled",
+		"description": "Whether SSL is enabled for the HTTP Service or not",
+		"type": "boolean",
+		"value": false,
+		"locked": false
   	}
   ],
   "provides": [

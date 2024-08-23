@@ -17,6 +17,15 @@
   		"point": "npa.core.service",
   		"id": "npa.runtime.props.service",
   		"service": "properties"
+  	},
+  	{
+  		"point": "npa.runtime.property.provider",
+  		"id": "npa.core.application",
+		"name": "npa.application.name",
+		"description": "ID for the currently running NPA Application",
+		"type": "string",
+		"value": "default",
+		"locked": false
   	}
   ],
   "provides": [
