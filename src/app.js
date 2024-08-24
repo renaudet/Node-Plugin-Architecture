@@ -29,6 +29,8 @@ const ENV_NAME = 'APPLICATION_NAME';
 const ARGV_NAME = 'name';
 const PROCESS_NAME_DEFAULT_VALUE = APPLICATION_DEFAULT_VALUE;
 
+const ENV_NPA_INSTALL_DIR = 'NPA_INSTALL_DIR';
+
 var config = {
 	"sites": [
 		{
@@ -91,6 +93,7 @@ if(!process.env[ENV_NAME]){
 if(!process.env.NODE_PATH){
 	console.log('NODE_PATH environment variable not set - Please add exports NODE_PATH = '+process.cwd()+'/node_modules to your launching script before starting the Node.js process');
 }else{
+	process.env[ENV_NPA_INSTALL_DIR] = __dirname;
 	let integrator = new Runtime(config);
 	let core = integrator.getPlugin('npa.core');
 	core.startApplication(process.env[ENV_APPLICATION]);

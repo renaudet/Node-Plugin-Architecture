@@ -1,7 +1,7 @@
 # Node-Plugin-Architecture
 A Plugin-based architecture for Node.js applications
 
-This project is a proof-of-concept for an Eclipse-like Plug-in architecture for applications written in Node.js.
+This project is a proof-of-concept for an Eclipse-like Plug-in-like architecture for applications written in Node.js.
 It does not supercedes the modular approach of Node, but instead offers a framework to create applications using a collaborative way, which Node hardly achieves using callbacks.
 
 A simple example is worth a thousand explanation...
@@ -137,6 +137,20 @@ dependencies so that all required plugins are initialized before the one explici
 To run the application, we use the app.js launcher using a command-line like:  
 
     $> node app.js --port 9080 --application sayHello
+
+##### Site configuration
+
+We may want to launch the NPA plugin framework with different set of plugin contributions.
+
+For example, a test instance may want to use a plugin contributing an SQL database support using SQLite whereas a production instance may want to use a plugin offering support for MySQL.
+
+To do so, you don't have to edit the appConfig.json file each time, which would be bothersome and error-prone. Instead, use the installation command-line argument to specify a dedicated appConfig.json file for the launch configuration:  
+
+    $> node app.js --installation ./configs/testConfiguration.json --port 9080 --application myDBApplication
+    
+or:  
+
+    $> node app.js --installation ./configs/productionConfiguration.json --application myDBApplication
     
 ## Installation
 
@@ -239,8 +253,7 @@ NPA provides a base plugin set installed by default in the `./plugins` directory
 
 Users may add their own plugins in this directory where they will be automatically discovered, but the recommended strategy is to create a new  _install location_  :
 
-Create a new directory to store your own plugins
-Update the `appConfig.json` file to add a new `site`:
+Create a new directory to store your own plugins and update the `appConfig.json` file to add a new `site`:
 
 ```json
 { 
@@ -257,6 +270,10 @@ Update the `appConfig.json` file to add a new `site`:
 }
 ```
 
+Notice that you can also create your own specific version of the appConfig.json file and point to this file in your launch configuration:   
+
+    $> node app.js --installation ./configs/myConfiguration.json --application myApplication
+
 And that's it. Though you may find it hard to refer to the base NPA modules as-is (un-resolved module location at runtime) while using the base Plugin class:
 
 ```javascript
@@ -266,10 +283,11 @@ const Plugin = require('/core/plugin.js'); //-> Exception
 You may use the absolute path for the /core/plugin.js module, but a more elegant way to solve this is as follow:
 
 ```javascript
-const Plugin = require(process.cwd()+'/core/plugin.js');
+const ENV_NPA_INSTALL_DIR = 'NPA_INSTALL_DIR';
+const Plugin = require(process.env[ENV_NPA_INSTALL_DIR]+'/core/plugin.js');
 ```
 
-Using  _process.cwd()_  is safe here as the integration runtime itself does not change the working directory before any plugin instance is loaded.
+Indeed, the NPA application launcher sets the  _NPA_INSTALL_DIR_  environment variable to its own install location, which makes it easier to resolve relative paths in downstream plugins.
 
 ## Base Plugins documentation
 
@@ -283,7 +301,7 @@ Dependency:
 
 This is the root plugin for the NPA plugin-tree architecture. It provides two extension points:
 
-#### npa.core.application
+#### *npa.core.application
 
 Extensions for this extension point should provide a `name` in the extension declaration:
 
@@ -299,7 +317,7 @@ The plugin itself should override the `start()`  method without arguments. The m
 
 Several  _application_  can be contributed at the same time, but only one will be started by the launcher (default value: test)
 
-#### npa.core.service
+#### *npa.core.service
 
 Extensions for this extension point should provide a `service` ID in the extension declaration:
 
@@ -340,7 +358,7 @@ This is the HTTP provider for NPA. Based on **Express**, it provides exension po
 
 Extension points:
 
-#### npa.http.router
+#### *npa.http.router
 
 Extensions for this extension point should provide a `path` in their declaration:
 
@@ -354,7 +372,7 @@ Extensions for this extension point should provide a `path` in their declaration
 	
 Contributed **handlers** may refer to a specific router by using its id (see example below)
 
-#### npa.http.handler
+#### *npa.http.handler
 
 Callback handlers are externally configured through the `manifest.json`  file:
 
@@ -373,7 +391,7 @@ In this example, the  _npa.ui.test.application.query.record.handler_  handler co
 
 As the router provided the `/test` path, this handler will be associated with the `/test/getRecords` uri
 
-#### npa.http.static
+#### *npa.http.static
 
 Extensions for this extension point should provide a `path` and a `localDir`  in their declaration:
 
@@ -392,7 +410,7 @@ The local directory is a subdirectory from the contributon plugin's own director
 
 For example, a file  _myGifFile.gif_  located in the  _img_  subdirectory of the  _htdocs_  directory configured above would be refered to as `/static/img/myGifFile.gif`
 
-#### npa.http.home
+#### *npa.http.home
 
 To redirect the unspecified uri '/' to a given uri, a plugin may provide an extension to `npa.http.home`
 
@@ -420,7 +438,7 @@ Extending `npa.logging` will redirect the logs to a `plugin.out.log` or `plugin.
 
 Extension point:
 
-#### npa.log.provider
+#### *npa.log.provider
 
 Extensions for this extension point should provide a `dir` location  in their declaration:
 
@@ -464,7 +482,7 @@ deleteRecord = function(reference,data,callback);
 
 Extension point:
 
-#### npa.couchdb.adapter.datasource
+#### *npa.couchdb.adapter.datasource
 
 Extensions for this extension point should provide the following declaration:
 
@@ -549,7 +567,7 @@ The `providerId` refers to a previously registered mail provider using the npa.m
 
 extension point:
 
-#### npa.mail.provider
+#### *npa.mail.provider
 
 Extension for this extension point should provide the following declaration:
 
@@ -703,3 +721,61 @@ getFileContent = function(filePath,options={});
 absolutePath = function(resourcePath);
 renameFile = function(baseDir,oldName,newName);
 ```
+
+### npa.jobs
+
+This plugin provides a basic long-running job management API that enables monitoring and feedback from a UI.
+
+Other plugins can use the job API through a service.
+
+Service:
+
+The npa.jobs plugin provides a `jobs` service with the following interface:
+
+```javascript
+getJobs = function();
+getJob = function(jobId);
+createJob = function(owner,description);
+updateJob = function(job);
+```
+
+### npa.runtime.props
+
+This plugin provides a server-side runtime properties management facility. This is a non-persistent, in-memory runtime properties facility management only.
+
+Other plugins can use the runtime properties API through a service.
+
+extension point:
+
+#### *npa.runtime.property.provider
+
+Extension for this extension point should provide the following declaration:
+
+```json
+{
+	"point": "npa.runtime.property.provider",
+	"id": "<the extension ID>"
+	"name": "<the property name>",
+	"description": "<a property description for the UI>",
+	"type": "string/int/boolean/percentage",
+	"value": <default value depending on the type>,
+	"locked": true/false
+} 
+```
+
+Service:
+
+The npa.runtime.props plugin provides a `properties` service with the following interface:
+
+```javascript
+newProperty = function(property);
+getProperties = function();
+getProperty = function(propertyName);
+setProperty = function(propertyName,value);
+lockProperty = function(propertyName);
+```
+Notice that the property may be declared locked or may be locked at plugin configuration time so that it is read-only for other downstream plugins
+
+### npa.core.admin
+
+This plugin is deprecated
