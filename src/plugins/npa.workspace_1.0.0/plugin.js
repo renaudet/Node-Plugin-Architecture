@@ -209,17 +209,24 @@ plugin.getProjects = function(filter){
 	return result;
 }
 
-plugin.getFileContent = function(filePath,options={}){
+plugin.getFileContent = function(filePath,options={},pathIsAbsolute=false){
 	this.trace('->getFileContent()');
-	let absoluteFilePath = 	this.location+'/'+filePath;
+	this.debug('filePath: '+filePath);
+	this.debug('options: '+options);
+	this.debug('pathIsAbsolute: '+pathIsAbsolute);
+	let absoluteFilePath = 	pathIsAbsolute?filePath:(this.location+'/'+filePath);
+	this.debug('absoluteFilePath: '+absoluteFilePath);
 	var buffer = fs.readFileSync(absoluteFilePath,options);
 	this.trace('<-getFileContent()');
 	return buffer.toString();
 }
 
-plugin.getFileInfo = function(filePath){
+plugin.getFileInfo = function(filePath,pathIsAbsolute=false){
 	this.trace('->getFileInfo()');
-	let absoluteFilePath = 	this.location+'/'+filePath;
+	this.debug('filePath: '+filePath);
+	this.debug('pathIsAbsolute: '+pathIsAbsolute);
+	let absoluteFilePath = 	pathIsAbsolute?filePath:(this.location+'/'+filePath);
+	this.debug('absoluteFilePath: '+absoluteFilePath);
 	var stat = fs.statSync(absoluteFilePath);
 	this.trace('<-getFileInfo()');
 	return stat;
