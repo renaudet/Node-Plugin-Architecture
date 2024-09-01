@@ -38,6 +38,18 @@ plugin.beforeExtensionPlugged = function(){
 	this.loggers['default'] = defaultLoggerConfig;
 }
 
+plugin.getLoggingPlugins = function(){
+	let result = [];
+	for(var id in this.loggers){
+		result.push(id);
+	}
+	return result;
+}
+
+plugin.getLogLevel = function(pluginId){
+	
+}
+
 plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 	var loggerConfig = {};
 	loggerConfig.initialized = false;
