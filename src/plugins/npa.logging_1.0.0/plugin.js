@@ -6,12 +6,13 @@
 const Plugin = require('../../core/plugin.js');
 const fs = require('fs'); 
 const moment = require('moment');
+const readline = require('node:readline');
 
 const ENV_LOG_DIR = 'LOG_DIR';
 const ENV_LOG_LEVEL = 'LOG_LEVEL';
 const DATE_TIME_FORMAT = 'YYYY/MM/DD HH:mm:ss';
 const DEFAULT_LOG_FILENAME = 'plugin.out.log';
-const DEFAULT_ERROR_FILENAME = 'plugin.err.log';
+const DEFAULT_ERROR_FILENAME = 'plugin.err.log'; 
 
 var plugin = new Plugin();
 plugin.mode = 'info';
@@ -51,7 +52,7 @@ plugin.getLogLevel = function(pluginId){
 	if(targetPlugin){
 		if(typeof targetPlugin.logLevel=='undefined'){
 			targetPlugin.logLevel = this.mode;
-			targetPlugin.info('log level set to '+targetPlugin.logLevel);
+			targetPlugin.info(pluginId+': log level set to '+targetPlugin.logLevel);
 		}
 		return targetPlugin.logLevel;
 	}
@@ -82,7 +83,7 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 				let authorizedPluginLevel = targetPlugin.logLevel;
 				if(typeof authorizedPluginLevel=='undefined'){
 					targetPlugin.logLevel = plugin.mode;
-					targetPlugin.info('log level set to '+targetPlugin.logLevel);
+					targetPlugin.info(this.id+': log level set to '+targetPlugin.logLevel);
 					authorizedPluginLevel = targetPlugin.logLevel;
 				}
 				if(('fine'==authorizedPluginLevel && 'debug'==level) || 
@@ -90,7 +91,6 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 					plugin.log2(extenderId,level,text);
 				}
 			}
-			//plugin.log(extenderId,level,text);
 		}
 	};
 	this.loggers[extenderId] = loggerConfig;
@@ -134,6 +134,11 @@ plugin.log = function(sourceId,level,text){
 }
 
 plugin.getLogger = function(pluginId){
+	let loggerConfig = this.getLoggerConfig(pluginId);
+	return loggerConfig.logger;
+}
+
+plugin.getLoggerConfig = function(pluginId){
 	let loggerConfig = this.loggers[pluginId];
 	if(typeof loggerConfig!='undefined'){
 		if(!loggerConfig.initialized){
@@ -142,9 +147,80 @@ plugin.getLogger = function(pluginId){
 			loggerConfig.initialized = true;
 			loggerConfig.logger.log('info','logger initialized - traces will be sent to '+path);
 		}
-		return loggerConfig.logger;
+		return loggerConfig;
 	}else{
-		return this.loggers['default'].logger;
+		return this.loggers['default'];
+	}
+}
+
+const MAX_LINE_COUNT = 50;
+plugin.readStandardLogContent = function(pluginId,then){
+	var loggerConfig = this.getLoggerConfig(pluginId);
+	if(typeof loggerConfig!='undefined'){
+		if(loggerConfig.initialized && typeof loggerConfig.dir!='undefined'){
+			let path = this.logDir+'/'+loggerConfig.dir+'/'+DEFAULT_LOG_FILENAME;
+			const fileStream = fs.createReadStream(path);
+			let reader = readline.createInterface({
+			    input: fileStream,
+			    crlfDelay: Infinity,
+			  });
+			let lineArray = [];
+			reader.on('line', function(line, lineCount, byteCount) {
+				if(lineArray.length>MAX_LINE_COUNT){
+					let newArray = [];
+					for(var i=1;i<lineArray.length;i++){
+						newArray.push(lineArray[i]);
+					}
+					lineArray = newArray;
+				}
+				lineArray.push(line);
+			  })
+			  .on('error', function(e) {
+				then(['an error occured reading file '+path]);
+			  })
+			  .on('close', function () {
+				then(lineArray);
+	          });
+		}else{
+			then([]);
+		}
+	}else{
+		then([]);
+	}
+}
+
+plugin.readErrorLogContent = function(pluginId,then){
+	var loggerConfig = this.getLoggerConfig(pluginId);
+	if(typeof loggerConfig!='undefined'){
+		if(loggerConfig.initialized && typeof loggerConfig.dir!='undefined'){
+			let path = this.logDir+'/'+loggerConfig.dir+'/'+DEFAULT_ERROR_FILENAME;
+			const fileStream = fs.createReadStream(path);
+			let reader = readline.createInterface({
+			    input: fileStream,
+			    crlfDelay: Infinity,
+			  });
+			let lineArray = [];
+			reader.on('line', function(line, lineCount, byteCount) {
+				if(lineArray.length>MAX_LINE_COUNT){
+					let newArray = [];
+					for(var i=1;i<lineArray.length;i++){
+						newArray.push(lineArray[i]);
+					}
+					lineArray = newArray;
+				}
+				lineArray.push(line);
+			  })
+			  .on('error', function(e) {
+				then(['an error occured reading file '+path]);
+			  })
+			  .on('close', function () {
+				then(lineArray);
+	          });
+		}else{
+			then([]);
+		}
+	}else{
+		then([]);
 	}
 }
 
