@@ -4,11 +4,11 @@
  */
 
 class Plugin {
-	config = null;
-	runtime = null;
-	logger = null;
-	directory = null;
 	constructor(){
+		this.config = null;
+		this.runtime = null;
+		this.logger = null;
+		this.directory = null;
 	}
 	getId(){
 		if(this.config==null){
@@ -19,7 +19,7 @@ class Plugin {
 	getConfig(){
 		return this.config;
 	}
-	configure = function(path,config,runtime){
+	configure(path,config,runtime){
 		console.log('configuring plugin '+config.id);
 		this.directory = path;
 		this.config = config;
@@ -80,7 +80,7 @@ class Plugin {
 	getLocalDirectory(){
 		return this.directory;
 	}
-	getExtensionById = function(extensionId){
+	getExtensionById(extensionId){
 		for(var i=0;i<this.config.extends.length;i++){
 			var extension = this.config.extends[i];
 			if(extensionId==extension.id){
@@ -89,7 +89,7 @@ class Plugin {
 		}
 		return null;
 	}
-	getExtensionsForPoint = function(extensionPointId){
+	getExtensionsForPoint(extensionPointId){
 		var extensions = [];
 		for(var i=0;i<this.config.extends.length;i++){
 			var extension = this.config.extends[i];
