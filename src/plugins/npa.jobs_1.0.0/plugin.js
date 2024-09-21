@@ -75,25 +75,29 @@ plugin.updateJob = function(job){
     if(job && job.id){
         this.debug('jobId: '+job.id);
         let internalJob = this.getJob(job.id);
-        if(STATUS_ONGOING == internalJob.status){
-            if(job.progress){
-                internalJob.progress = job.progress;
-            }
-            if(STATUS_SETROLLBACKONLY==job.status){
-                internalJob.status = job.status;
-            }
-            if(STATUS_COMPLETED==job.status){
-                internalJob.progress = 100;
-                internalJob.status = job.status;
-                internalJob.endTime = moment();
-            }
-            if(STATUS_ONGOING == internalJob.status && internalJob.progress==100){
-                internalJob.status = STATUS_COMPLETED;
-                internalJob.endTime = moment();
-            }
-        }
-        this.debug('<-updateJob()');
-        return internalJob;
+        if(typeof internalJob!='undefined'){
+	        if(STATUS_ONGOING == internalJob.status){
+	            if(job.progress){
+	                internalJob.progress = job.progress;
+	            }
+	            if(STATUS_SETROLLBACKONLY==job.status){
+	                internalJob.status = job.status;
+	            }
+	            if(STATUS_COMPLETED==job.status){
+	                internalJob.progress = 100;
+	                internalJob.status = job.status;
+	                internalJob.endTime = moment();
+	            }
+	            if(STATUS_ONGOING == internalJob.status && internalJob.progress==100){
+	                internalJob.status = STATUS_COMPLETED;
+	                internalJob.endTime = moment();
+	            }
+	        }
+	        this.debug('<-updateJob()');
+	        return internalJob;
+        }else{
+			return {};
+		}
     }else{
         this.debug('<-updateJob() - not found');
         return {};

@@ -72,6 +72,7 @@ plugin.performGetRestApiCall = function(restContext,onRestInvocationCompletedCal
 }
 
 plugin.performPostRestApiCall = function(restContext,onRestInvocationCompletedCallback){
+	this.debug('payload: '+JSON.stringify(restContext.payload,null,'\t'));
 	axios.post(restContext.url,restContext.payload,restContext.options)
 	.then(function (response) {
 		onRestInvocationCompletedCallback(null,response);
@@ -84,6 +85,7 @@ plugin.performPostRestApiCall = function(restContext,onRestInvocationCompletedCa
 }
 
 plugin.performPutRestApiCall = function(restContext,onRestInvocationCompletedCallback){
+	this.debug('payload: '+JSON.stringify(restContext.payload,null,'\t'));
 	axios.put(restContext.url,restContext.payload,restContext.options)
 	.then(function (response) {
 		onRestInvocationCompletedCallback(null,response);
