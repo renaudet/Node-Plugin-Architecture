@@ -148,19 +148,19 @@ plugin.createDatabase = function(reference,callback){
 	.then(function (response) {
 		var result = response.data;
 		if(result && result.error){
-			plugin.debug('<-createDatabase()');
+			plugin.debug('<-createDatabase() - error 1');
 			callback(result.error,false);
 		}else{
-			plugin.debug('<-createDatabase()');
+			plugin.debug('<-createDatabase() - success');
 			callback(null,true);
 		}
 	})
 	.catch(function (error) {
 		if(error.response && error.response.data){
-			plugin.debug('<-createDatabase()');
+			plugin.debug('<-createDatabase() - error 2');
 			callback(error.response.data,false);
 		}else{
-			plugin.debug('<-createDatabase()');
+			plugin.debug('<-createDatabase() - error 3');
 			callback(error,false);
 		}
 	});
@@ -288,17 +288,17 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 	.then(function (response) {
 		if(response.data.error){
 			plugin.error(JSON.stringify(response.data,null,'\t'));
-			plugin.debug('<-createRecord()');
+			plugin.debug('<-createRecord() - error couchDB exception');
 			callback(response.data.error,null);
 		}else{
-			plugin.debug('<-createRecord()');
+			plugin.debug('<-createRecord() - success');
 			data._rev = response.data.rev;
 			callback(null,data);
 		}
 	})
 	.catch(function (error) {
 		plugin.error(JSON.stringify(error,null,'\t'));
-		plugin.debug('<-createRecord()');
+		plugin.debug('<-createRecord() - error axios exception');
 		callback(error,null);
 	});
 }

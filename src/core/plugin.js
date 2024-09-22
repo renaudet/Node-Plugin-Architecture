@@ -131,6 +131,44 @@ class Plugin {
 	start(){
 		this.info(this.config.id+' starting...');
 	}
+	sortOn(list,attributeName,descending=true){
+		if(typeof attributeName=='undefined'){
+			return list;
+		}else{
+			if(list.length>1){
+				for(var i=0;i<list.length-1;i++){
+					for(var j=i+1;j<list.length;j++){
+						var listi = list[i];
+						var listj = list[j];
+						if(typeof listj[attributeName]!='undefined' && typeof listi[attributeName]!='undefined'){
+							if(Number.isInteger(listj[attributeName])){
+								if(listj[attributeName]<listi[attributeName]){
+									var tmp = listi;
+									list[i] = listj;
+									list[j] = tmp;
+								}
+							}else{
+								if(descending){
+									if(listj[attributeName].localeCompare(listi[attributeName])<0){
+										var tmp = listi;
+										list[i] = listj;
+										list[j] = tmp;
+									}
+								}else{
+									if(listj[attributeName].localeCompare(listi[attributeName])>0){
+										var tmp = listi;
+										list[i] = listj;
+										list[j] = tmp;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			return list;
+		}
+	}
 }
 
 module.exports = Plugin;
