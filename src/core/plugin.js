@@ -2,6 +2,7 @@
  * plugin.js - plugin upper class
  * Copyright 2023 Nicolas Renaudet - All rights reserved
  */
+const fs = require('fs'); 
 
 class Plugin {
 	constructor(){
@@ -79,6 +80,15 @@ class Plugin {
 	}
 	getLocalDirectory(){
 		return this.directory;
+	}
+	getResourceContent(relativePath){
+		this.debug('->getResourceContent()');
+		this.debug('relativePath: '+relativePath);
+		let resourcePath = this.getLocalDirectory()+relativePath;
+		this.debug('resourcePath: '+resourcePath);
+		var buffer = fs.readFileSync(resourcePath,{});
+		this.debug('<-getResourceContent()');
+		return buffer.toString();
 	}
 	getExtensionById(extensionId){
 		for(var i=0;i<this.config.extends.length;i++){
