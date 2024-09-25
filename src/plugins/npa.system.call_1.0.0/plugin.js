@@ -7,6 +7,8 @@ const Plugin = require('../../core/plugin.js');
 const moment = require('moment');
 const spawn = require('node:child_process').spawn;
 const REAPER_THREAD_DELAY = 1000;
+const TIMESTAMP_FORMAT = 'YYYY/MM/DD HH:mm:ss';
+const MAX_AGE = 5*60*1000;
 
 var plugin = new Plugin();
 plugin.process = {};
@@ -15,7 +17,7 @@ plugin.reaperThreadActive = false;
 plugin.createProcessWrapper = function(command){
 	this.debug('->createProcessWrapper');
 	var processInstance = {};
-	processInstance.startTime = moment().format("YYYY/MM/DD HH:mm:ss");
+	processInstance.startTime = moment().format(TIMESTAMP_FORMAT);
 	processInstance.status = 'pending';
 	processInstance.commandLine = command;
 	processInstance.process = null;
@@ -26,15 +28,27 @@ plugin.createProcessWrapper = function(command){
 	return processInstance;
 }
 
-plugin.executeCommand = function(command,needsCleanEnvironment,onCommandExecutionLaunched,onChildProcessCompleted){
+/*
+ * launchConfiguration = {
+	 "command": "abcd",
+	 "workDir": "",
+	 "detached": true/false,
+	 "shell": true/false,
+	 "inherit": true/false,
+	 "environment": {
+		"variable": "value"
+	 }
+   }
+ */
+plugin.executeCommand = function(launchConfiguration,onCommandExecutionLaunched,onChildProcessCompleted){
 	this.debug('->executeCommand');
-	this.trace('command: '+command);
-	var processWrapper = this.createProcessWrapper(command);
+	this.trace('launchConfiguration: '+JSON.stringify(launchConfiguration,null,'\t'));
+	var processWrapper = this.createProcessWrapper(launchConfiguration.command);
 	function updateJob(data,completed){
 		if(processWrapper.process && !processWrapper.process.killed){
 			if(completed){
 				processWrapper.exitCode = data;
-				processWrapper.endTime = moment().format("YYYY/MM/DD HH:mm:ss");
+				processWrapper.endTime = moment().format(TIMESTAMP_FORMAT);
 				processWrapper.status = 'completed';
 				plugin.debug('standard output for '+processWrapper.commandLine);
 				plugin.debug(JSON.stringify(processWrapper.output,null,'\t'));
@@ -73,11 +87,15 @@ plugin.executeCommand = function(command,needsCleanEnvironment,onCommandExecutio
 	  updateJob(exitCode,true);
 	}
 	try{
-		if(needsCleanEnvironment){
-			processWrapper.process = spawn(command,[],{"env": {},"detached": true,"shell": true});
-		}else{
-			processWrapper.process = spawn(command,[],{"shell": true});
+		let environment = {};
+		if(launchConfiguration.inherit){
+			environment = Object.assign(environment,process.env);
 		}
+		environment = Object.assign(environment,launchConfiguration.environment);
+		processWrapper.process = spawn(launchConfiguration.command,[],{"env": environment,
+																	   "detached": launchConfiguration.detached,
+																	   "shell": launchConfiguration.shell,
+																	   "cwd": launchConfiguration.workDir});
 		processWrapper.process.stdout.on('data',logJobStdout);
 		processWrapper.process.stderr.on('data',logJobStderr);
 		processWrapper.process.on('exit',processJobExit);
@@ -97,13 +115,21 @@ plugin.executeCommand = function(command,needsCleanEnvironment,onCommandExecutio
 plugin.startReaperThread = function(){
 	this.reaperThreadActive = true;
 	var activeProcessCount = 0;
+	var now = moment();
+	var pidToRemove = [];
 	for(pid in this.process){
 		var processInstance = this.process[pid];
 		if('completed'!=processInstance.status){
 			activeProcessCount++;
 		}else{
-			//remove from memory here
+			if(now.diff(moment(processInstance.endTime,TIMESTAMP_FORMAT))>MAX_AGE){
+				pidToRemove.push(pid);
+			}
 		}
+	}
+	for(var i=0;i<pidToRemove.length;i++){
+		plugin.debug('deleting in-memory console for processPID #'+pidToRemove[i]);
+		delete this.process[pidToRemove[i]];
 	}
 	if(activeProcessCount>0){
 		setTimeout(function(){ plugin.startReaperThread(); },REAPER_THREAD_DELAY);
