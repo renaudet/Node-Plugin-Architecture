@@ -19,10 +19,16 @@ plugin.agent = new https.Agent({
 	"port": (optional)integer,
 	"uri": string,
 	"secured": boolean,
+	"acceptCertificate": boolean
 	"username": (optional)string,
 	"password": (optional)string,
 	"method": GET/PUT/POST/DELETE,
-	"payload": (optional)json
+	"payload": (optional)json,
+	"options": {
+		headers: {
+          "Content-Type": "multipart/form-data"
+       }
+	}
   }
  */
 plugin.performRestApiCall = function(restContext,onRestInvocationCompletedCallback){
