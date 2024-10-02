@@ -23,6 +23,7 @@ ul.tree, .tree {
   padding-right: 5px;
   padding-left: 5px;
   padding-bottom: 3px;
+  white-space: nowrap;
 }
 
 .leaf {
@@ -31,6 +32,7 @@ ul.tree, .tree {
   padding-right: 5px;
   padding-left: 5px;
   padding-bottom: 3px;
+  white-space: nowrap;
 }
 
 /* Create the caret/arrow with a unicode, and style it 25B6*/
