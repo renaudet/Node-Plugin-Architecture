@@ -77,6 +77,8 @@
   	{"id": "npa.http.router"},
   	{"id": "npa.http.handler"},
   	{"id": "npa.http.static"},
-  	{"id": "npa.http.home"}
+  	{"id": "npa.http.home"},
+  	{"id": "npa.http.ws.router"},
+  	{"id": "npa.http.ws.handler"}
   ]
 }

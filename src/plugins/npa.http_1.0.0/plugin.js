@@ -5,6 +5,7 @@
  
 const Plugin = require('../../core/plugin.js');
 const express = require('express');
+const expressWs = require('express-ws');
 const moment = require('moment');
 const COUCH_SERVICE_ID = 'couchdb';
 const bodyParser = require('body-parser');
@@ -14,6 +15,7 @@ const RUNTIME_PROPERTIES_SERVICE_NAME = 'properties';
 
 var plugin = new Plugin();
 plugin.endpoint = null;
+plugin.wsEndpoint = null;
 plugin.routers = {};
 plugin.commands = [];
 plugin.homePage = null;
@@ -23,6 +25,9 @@ plugin.providers = {"routers": {},"apis": []};
 plugin.beforeExtensionPlugged = function(){
 	process.title = process.env[ENV_NAME];
 	this.endpoint = express();
+	if(!this.getConfigValue('http.secure','boolean')){
+		this.wsEndpoint = expressWs(this.endpoint);
+	}
 	this.endpoint.set('etag', false);
 	this.endpoint.use(bodyParser.json());
 	this.endpoint.use(bodyParser.urlencoded({ extended: true, limit: '500kb' }));
@@ -107,6 +112,30 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 		}
 		this.commands.push(command);
 		this.providers.routers[extensionPointConfig.id] = extensionPointConfig.path;
+	}
+	if('npa.http.ws.router'==extensionPointConfig.point){
+		var command = {};
+		command.execute = function(){
+			plugin.info('adding express-ws router for path '+extensionPointConfig.path+' from #'+extensionPointConfig.id);
+			plugin.routers[extensionPointConfig.id] = express.Router();
+			plugin.endpoint.use(extensionPointConfig.path,plugin.routers[extensionPointConfig.id]);
+		}
+		this.commands.push(command);
+		this.providers.routers[extensionPointConfig.id] = extensionPointConfig.path;
+	}
+	if('npa.http.ws.handler'==extensionPointConfig.point){
+		var command = {};
+		command.execute = function(){
+			plugin.info('adding a WebSocket handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
+			var router = plugin.routers[extensionPointConfig.router];
+			if(typeof router!="undefined"){
+				let extender = wrapper.getPlugin();
+				router.ws(extensionPointConfig.schema,extender[extensionPointConfig.handler]);
+			}else{
+				this.error('router '+extensionPointConfig.router+' not found for extension point '+extensionPointConfig.id);
+			}
+		}
+		this.commands.push(command);
 	}
 	if('npa.http.handler'==extensionPointConfig.point){
 		if('GET'==extensionPointConfig.method){
@@ -199,12 +228,6 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 
 plugin.startListener = function(requiredPort=null){
 	this.trace('->startListener()');
-	for(var i=0;i<this.commands.length;i++){
-		var command = this.commands[i];
-		try{
-			command.execute();
-		}catch(t){}
-	}
 	console.log('Home page: '+this.homePage);
 	if(this.homePage!=null){
 		this.endpoint.get('/',function(req, res){
@@ -233,10 +256,24 @@ plugin.startListener = function(requiredPort=null){
 		    key: fs.readFileSync(plugin.getConfigValue('http.security.privateKeyFile','string')),
 		    cert: fs.readFileSync(plugin.getConfigValue('http.security.certificate','string'))
 		};
-		https.createServer(options, this.endpoint).listen(port);
+		let server = https.createServer(options, this.endpoint);
+		plugin.wsEndpoint = expressWs(this.endpoint,server);
+		for(var i=0;i<this.commands.length;i++){
+			var command = this.commands[i];
+			try{
+				command.execute();
+			}catch(t){}
+		}
+		server.listen(port);
 	}else{
 	    propService.lockProperty('http.service.ssl.enabled');
 		this.info('starting the HTTP listener on port '+port);
+		for(var i=0;i<this.commands.length;i++){
+			var command = this.commands[i];
+			try{
+				command.execute();
+			}catch(t){}
+		}
 		this.endpoint.listen(port);
 	}
 	

@@ -15,10 +15,13 @@
     "couchdb-expression": "^1.6.1",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
+    "express-ws": "^5.0.2",
     "formidable": "2.1.2",
     "md5": "^2.3.0",
     "moment": "^2.29.4",
     "nodemailer": "^6.9.12",
+    "sqlite3": "^5.1.7",
+    "ssh2": "^1.16.0",
     "uuid": "^9.0.1",
     "yargs": "^17.7.2"
   }
