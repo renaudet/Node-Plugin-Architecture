@@ -207,6 +207,7 @@ plugin.query = function(reference,query,callback){
 	this.trace('reference: '+reference);
 	var datasource = this.getDatasource(reference);
 	var url= this.makeBaseUrl(datasource)+'/_find';
+	this.trace('url: '+url);
 	if(!query.limit){
 		query.limit = datasource.maxPageSize;
 	}

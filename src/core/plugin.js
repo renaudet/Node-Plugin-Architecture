@@ -179,6 +179,26 @@ class Plugin {
 			return list;
 		}
 	}
+	checkInput(src,from){
+		if(typeof src=='undefined' || src==null){
+			if(typeof from!='undefined' && from!=null){
+				return false;
+			}else{
+				return true;
+			}
+		}
+		let checkResult = true;
+		for(var attributeName in from){
+			if(typeof src[attributeName]=='undefined'){
+				checkResult = false;
+			}else{
+				if(typeof src[attributeName]!=typeof from[attributeName]){
+					checkResult = false;
+				}
+			}
+		}
+		return checkResult;
+	}
 }
 
 module.exports = Plugin;
