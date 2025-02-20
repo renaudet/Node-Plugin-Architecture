@@ -4,6 +4,13 @@
  * Copyright 2023 Nicolas Renaudet - All rights reserved
  */
 
+// load optional env file at startup... 
+let env_file_path = '.env';
+if(process.env.ENV_FILE){
+	env_file_path = process.env.ENV_FILE;
+}
+require('dotenv').config({ path: env_file_path });
+
 const args = require('yargs').argv;
 const Runtime = require('./core/integrationRuntime');
 
