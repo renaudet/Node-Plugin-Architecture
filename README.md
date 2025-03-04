@@ -171,6 +171,44 @@ $>node app.js --application test --logs ./logs --level finest --port 9080 --name
 
 Open a browser on the following URL: http://localhost:9080
 
+## Environment configuration
+
+NPA and the applications based on NPA may require environment variables to be set before calling the node.js launcher.
+
+To ease environment configuration, an env file may be used. By default, this env file must be placed in the same directory as the apaf launcher **app.js** but it is possible to provide a specific location
+using the **ENV_FILE** environment variable
+
+```bash
+$>export NODE_PATH=./node_modules
+$>export ENV_FILE=./config/productionConfig.env
+$>node app.js
+```
+
+A minimal env file for NPA may look like:
+
+```bash
+COUCH_DATABASE_PREFIX=apaf_
+HTTP_SESSION_TIMEOUT=900
+PERSIST_HTTP_SESSION=false
+NPA_SESSIONS_COUCH_DB_HOST=
+NPA_SESSIONS_COUCH_DB_PORT=5984
+NPA_SESSIONS_COUCH_DB_USER=
+NPA_SESSIONS_COUCH_DB_USER_PASSWD=
+WORKSPACE_LOC=/opt/npa/workspace
+SMTP_USER=
+SMTP_PASSWD=XXXX
+LOG_DIR=/opt/npa/logs
+LOG_LEVEL=info
+ENABLE_SSL=false
+SSL_CERTIFICATE=/opt/npa/ssl/certificate.pem
+SSL_PRIVATE_KEY=/opt/npa/ssl/private-key.pem
+PORT=9080
+APPLICATION_NAME=NPA Server
+APAF_INSTALLATION=./apafConfig.json
+```
+
+**Notice** The installation configuration file location variable is wrongly named APAF_INSTALLATION where it should be named NPA_INSTALLATION. This will be fix soon.
+
 ## Writing a plugin for NPA
     
 A plugin is a pure node.js module, with its usual require statements and export declaration.
