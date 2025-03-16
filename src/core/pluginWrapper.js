@@ -15,19 +15,24 @@ class PluginWrapper {
 	getPlugin(){
 		if(this.impl==null){
 			console.log('effectively loading Plugin '+this.getId());
-			try{
+			//try{
 				let pathToModule = this.pluginConfig.path.replace(/\.\//,'../')+'/'+this.pluginConfig.manifest.plugin;
 				this.impl = require(pathToModule);
 				this.impl.configure(this.pluginConfig.path,this.pluginConfig.manifest,this.runtime);
 				this.impl.beforeExtensionPlugged();
 				for(var i=0;i<this.extensionPlugs.length;i++){
 					let extensionPlug = this.extensionPlugs[i];
-					this.impl.lazzyPlug(extensionPlug.wrapper.getId(),extensionPlug.config);
+					try{
+						this.impl.lazzyPlug(extensionPlug.wrapper.getId(),extensionPlug.config);
+					}catch(t){
+						console.log('PluginWrapper#getPlugin() - exception calling lazzyPlug() for '+extensionPlug.config.id);
+						console.log(t);
+					}
 				}
 				this.impl.onConfigurationLoaded();
-			}catch(t){
+			/*}catch(t){
 				console.log(t);
-			}
+			}*/
 		}
 		return this.impl;
 	}
@@ -41,6 +46,7 @@ class PluginWrapper {
 		return this.pluginConfig.manifest.id;
 	}
 	plug(extenderWrapper,extensionPointConfig){
+		//console.log('PluginWrapper #ID '+this.pluginConfig.id+' plugin in extension '+extensionPointConfig.id);
 		this.extensionPlugs.push({"wrapper": extenderWrapper,"config": extensionPointConfig});
 	}
 }
