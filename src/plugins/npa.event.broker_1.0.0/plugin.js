@@ -9,7 +9,7 @@ const EventEmitter = require('node:events');
 const TIMESTAMP_FORMAT = 'YYYY/MM/DD - HH:mm:ss';
 
 var plugin = new Plugin();
-plugin.eventEmitter = new EventEmitter();
+plugin.eventEmitter = new EventEmitter().setMaxListeners(0);
 plugin.eventHandlers = {};
 
 /*
@@ -65,6 +65,21 @@ plugin.registerHandler = function(eventName,handlerId,handlerCallback){
 	this.debug('<-registerHandler()');
 }
 
+plugin.cleanupHandlerMap = function(handlerId){
+	this.debug('->cleanupHandlerMap()');
+	this.trace('handlerId: '+handlerId);
+	if(typeof this.eventHandlers[handlerId]!='undefined'){
+		let eventCount = 0;
+		for(var eventId in this.eventHandlers[handlerId]){
+			eventCount++;
+		}
+		if(eventCount==0){
+			delete this.eventHandlers[handlerId];
+		}
+	}
+	this.debug('<-cleanupHandlerMap()');
+}
+
 plugin.unregisterHandler = function(eventName,handlerId){
 	this.debug('->unregisterHandler()');
 	this.trace('eventName: '+eventName);
@@ -72,9 +87,24 @@ plugin.unregisterHandler = function(eventName,handlerId){
 	if(typeof this.eventHandlers[handlerId]!='undefined'){
 		if(typeof this.eventHandlers[handlerId][eventName]!='undefined'){
 			this.eventEmitter.removeListener(eventName, this.eventHandlers[handlerId][eventName]);
+			delete this.eventHandlers[handlerId][eventName];
+			this.cleanupHandlerMap(handlerId);
 		}
 	}
 	this.debug('<-unregisterHandler()');
+}
+
+plugin.unregisterAllHandler = function(eventName){
+	this.debug('->unregisterAllHandler()');
+	this.trace('eventName: '+eventName);
+	for(var handlerId in this.eventHandlers){
+		if(typeof this.eventHandlers[handlerId][eventName]!='undefined'){
+			this.eventEmitter.removeListener(eventName, this.eventHandlers[handlerId][eventName]);
+			delete this.eventHandlers[handlerId][eventName];
+			this.cleanupHandlerMap(handlerId);
+		}
+	}
+	this.debug('<-unregisterAllHandler()');
 }
 
 module.exports = plugin;
