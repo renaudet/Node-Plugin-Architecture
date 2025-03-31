@@ -123,6 +123,9 @@ class Plugin {
 	log(level,text){
 		this.getLogger().log(level,text);
 	}
+	canLog(level){
+		return this.getLogger().canLog(level);
+	}
 	info(text){
 		console.log(text);
 		this.log('info',text);

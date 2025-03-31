@@ -91,6 +91,24 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 					plugin.log2(extenderId,level,text);
 				}
 			}
+		},
+		canLog: function(level){
+			if('error'==level || 'info'==level){
+				return true;
+			}else{
+				let targetPlugin = plugin.runtime.getPlugin(this.id);
+				let authorizedPluginLevel = targetPlugin.logLevel;
+				if(typeof authorizedPluginLevel=='undefined'){
+					targetPlugin.logLevel = plugin.mode;
+					targetPlugin.info(this.id+': log level set to '+targetPlugin.logLevel);
+					authorizedPluginLevel = targetPlugin.logLevel;
+				}
+				if(('fine'==authorizedPluginLevel && 'debug'==level) || 
+				   ('finest'==authorizedPluginLevel && ('debug'==level || 'trace'==level))){
+					return true;
+				}
+				return false;
+			}
 		}
 	};
 	this.loggers[extenderId] = loggerConfig;
