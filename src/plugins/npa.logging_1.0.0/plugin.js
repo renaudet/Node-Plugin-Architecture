@@ -83,7 +83,7 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 				let authorizedPluginLevel = targetPlugin.logLevel;
 				if(typeof authorizedPluginLevel=='undefined'){
 					targetPlugin.logLevel = plugin.mode;
-					targetPlugin.info(this.id+': log level set to '+targetPlugin.logLevel);
+					targetPlugin.info('log level set to '+targetPlugin.logLevel);
 					authorizedPluginLevel = targetPlugin.logLevel;
 				}
 				if(('fine'==authorizedPluginLevel && 'debug'==level) || 

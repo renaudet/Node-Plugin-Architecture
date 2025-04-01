@@ -17,6 +17,7 @@ var PluginWrapper = require('./pluginWrapper');
 		this.discover();
 	}
 	discover(){
+		console.log('NPA Integration Runtime starting...');
 		for(var i=0;i<this.config.sites.length;i++){
 			let site = this.config.sites[i];
 			console.log('discovering installation site "'+site.id+'"...');
@@ -29,7 +30,9 @@ var PluginWrapper = require('./pluginWrapper');
 				}
 			}
 		}
+		console.log('building plugin map...');
 		this.createPluginMap();
+		console.log('plugin map initialized. '+this.plugins.length+' plugins were loaded');
 	}
 	loadPluginManifest(path){
 		var manifestFilename = path.replace(/\.\//,'../')+'/'+PLUGIN_MANIFEST_NAME;
@@ -42,9 +45,9 @@ var PluginWrapper = require('./pluginWrapper');
 			metadata.path = path;
 			metadata.manifest = manifest;
 			this.map[manifest.id].push(metadata);
+			console.log('- found plugin '+manifest.id);
 		}catch(fnf){
-			console.log('No manifest file found in '+path);
-			//console.log(fnf);
+			console.log('WARNING: no manifest file found at '+path);
 		}
 	}
 	createPluginMap(){
@@ -116,14 +119,14 @@ var PluginWrapper = require('./pluginWrapper');
 		}
 	}
 	lazzyLoadPlugin(mapEntry){
-		console.log('lazzyLoadPlugin('+mapEntry.manifest.id+')');
+		console.log('lazzy loading plugin: '+mapEntry.manifest.id);
 		try{
 			let wrapper = new PluginWrapper(mapEntry,this);
 			this.lazzyRegisterExtensionPoints(wrapper);
 			this.lazzyPlugExtensions(wrapper);
 			this.map[wrapper.getId()] = wrapper;
 		}catch(lpe){
-			console.log('Plugin '+mapEntry.manifest.id+' failed loading!');
+			console.log('ERROR: plugin '+mapEntry.manifest.id+' failed loading!');
 			console.log(lpe);
 		}
 	}

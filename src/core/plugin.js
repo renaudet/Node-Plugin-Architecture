@@ -127,7 +127,7 @@ class Plugin {
 		return this.getLogger().canLog(level);
 	}
 	info(text){
-		console.log(text);
+		console.log(this.getId()+': '+text);
 		this.log('info',text);
 	}
 	debug(text){
@@ -137,12 +137,22 @@ class Plugin {
 		this.log('trace',text);
 	}
 	error(text){
-		console.log(text);
+		console.log(this.getId()+': '+text);
 		this.log('info','an error was sent to the error log!');
 		this.log('error',text);
 	}
 	start(){
 		this.info(this.config.id+' starting...');
+	}
+	setState(state){
+		this.debug('->setState('+state+')');
+		let core = this.runtime.getPlugin('npa.core');
+		core.setGlobalState(state);
+		this.debug('<-setState()');
+	}
+	registerStateListener(state,callback){
+		let core = this.runtime.getPlugin('npa.core');
+		core.registerGlobalStateListener(state,callback);
 	}
 	sortOn(list,attributeName,descending=true){
 		if(typeof attributeName=='undefined'){
