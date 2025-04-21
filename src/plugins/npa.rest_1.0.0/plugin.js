@@ -62,6 +62,7 @@ plugin.performRestApiCall = function(restContext,onRestInvocationCompletedCallba
 }
 
 plugin.performGetRestApiCall = function(restContext,onRestInvocationCompletedCallback){
+	this.trace('->performGetRestApiCall()');
 	axios.get(restContext.url,restContext.options)
 	.then(function (response) {
 		try{
@@ -73,24 +74,30 @@ plugin.performGetRestApiCall = function(restContext,onRestInvocationCompletedCal
 	.catch(function (error) {
 		plugin.error('GET from url: '+restContext.url);
 		plugin.error(JSON.stringify(error,null,'\t'));
-		onRestInvocationCompletedCallback('REST invocation failed for '+restContext.url,error);//error.response.data
+		//error.response.data
+		onRestInvocationCompletedCallback('REST invocation failed for '+restContext.url,error);
 	});
 }
 
 plugin.performPostRestApiCall = function(restContext,onRestInvocationCompletedCallback){
+	this.trace('->performPostRestApiCall()');
 	this.debug('payload: '+JSON.stringify(restContext.payload,null,'\t'));
 	axios.post(restContext.url,restContext.payload,restContext.options)
 	.then(function (response) {
+		plugin.debug('<-performPostRestApiCall() - success');
 		onRestInvocationCompletedCallback(null,response);
 	})
 	.catch(function (error) {
+		plugin.debug('<-performPostRestApiCall() - error');
 		plugin.error('POST from url: '+restContext.url);
 		plugin.error(JSON.stringify(error,null,'\t'));
-		onRestInvocationCompletedCallback('REST invocation failed for '+restContext.url,error);//error.response.data
+		//error.response.data
+		onRestInvocationCompletedCallback('REST invocation failed for '+restContext.url,error);
 	});
 }
 
 plugin.performPutRestApiCall = function(restContext,onRestInvocationCompletedCallback){
+	this.trace('->performPutRestApiCall()');
 	this.debug('payload: '+JSON.stringify(restContext.payload,null,'\t'));
 	axios.put(restContext.url,restContext.payload,restContext.options)
 	.then(function (response) {
@@ -99,11 +106,13 @@ plugin.performPutRestApiCall = function(restContext,onRestInvocationCompletedCal
 	.catch(function (error) {
 		plugin.error('PUT from url: '+restContext.url);
 		plugin.error(JSON.stringify(error));
-		onRestInvocationCompletedCallback('REST invocation failed for '+restContext.url,error);//error.response.data
+		//error.response.data
+		onRestInvocationCompletedCallback('REST invocation failed for '+restContext.url,error);
 	});
 }
 
 plugin.performDeleteRestApiCall = function(restContext,onRestInvocationCompletedCallback){
+	this.trace('->performDeleteRestApiCall()');
 	axios.delete(restContext.url,{},restContext.options)
 	.then(function (response) {
 		onRestInvocationCompletedCallback(null,response);
@@ -111,7 +120,8 @@ plugin.performDeleteRestApiCall = function(restContext,onRestInvocationCompleted
 	.catch(function (error) {
 		plugin.error('DELETE from url: '+restContext.url);
 		plugin.error(JSON.stringify(error));
-		onRestInvocationCompletedCallback('REST invocation failed for '+restContext.url,error);//error.response.data
+		//error.response.data
+		onRestInvocationCompletedCallback('REST invocation failed for '+restContext.url,error);
 	});
 }
 
