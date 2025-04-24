@@ -58,12 +58,13 @@ plugin.getJob = function(jobId){
     return job;
 }
 
-plugin.createJob = function(owner,description){
+plugin.createJob = function(owner,description,longRunning=false){
     this.debug('->createJob()');
     this.debug('owner: '+owner);
     this.debug('description: '+description);
     let job = {"id": uuidv4(),"owner": owner,"description": description,"startTime": moment(),"status": STATUS_PENDING,"progress": 0};
     job.revalidationTime = job.startTime;
+    job.isLongRunning = longRunning;
     this.debug(JSON.stringify(job,null,'\t'));
     this.jobTable[job.id] = job;
     this.debug('<-createJob()');
@@ -111,23 +112,30 @@ plugin.checkJobExpiration = function(){
     let now = moment();
     for(var jobId in this.jobTable){
         let job = this.jobTable[jobId];
-        let expirationTimeout = propService.getProperty('job.expiration.timeout');
-        if('pending'==job.status || 'ongoing'==job.status || 'setRollbackOnly'==job.status){
-            if('setRollbackOnly'==job.status){
-                this.debug('job id #'+jobId+' marked as setRollbackOnly - terminating');
-                job.status = STATUS_TERMINATED;
-                job.endTime = now;
-            }else{
-                if(now.diff(job.revalidationTime)>=expirationTimeout){
-                    this.debug('job id #'+jobId+' was not revalidated for 10 min. - marking as setRollbackOnly');
-                    job.status = STATUS_SETROLLBACKONLY;
-                }
-            }
-        }else{
-            if(now.diff(job.endTime)>=expirationTimeout){
-                this.debug('job id #'+jobId+' expired');
-                jobsToDelete.push(jobId);
-            }
+        if(job.isLongRunning){
+			if(job.status==STATUS_COMPLETED){
+				//jobsToDelete.push(jobId);
+				job.isLongRunning = false;
+			}
+		}else{
+	        let expirationTimeout = propService.getProperty('job.expiration.timeout');
+	        if(STATUS_PENDING==job.status || STATUS_ONGOING==job.status || STATUS_SETROLLBACKONLY==job.status){
+	            if(STATUS_SETROLLBACKONLY==job.status){
+	                this.debug('job id #'+jobId+' marked as setRollbackOnly - terminating');
+	                job.status = STATUS_TERMINATED;
+	                job.endTime = now;
+	            }else{
+	                if(now.diff(job.revalidationTime)>=expirationTimeout){
+	                    this.debug('job id #'+jobId+' was not revalidated for '+expirationTimeout+'msec. - marking as setRollbackOnly');
+	                    job.status = STATUS_SETROLLBACKONLY;
+	                }
+	            }
+	        }else{
+	            if(now.diff(job.endTime)>=expirationTimeout){
+	                this.debug('job id #'+jobId+' expired');
+	                jobsToDelete.push(jobId);
+	            }
+	        }
         }
     }
     this.debug('found '+jobsToDelete.length+' expired jobs');
