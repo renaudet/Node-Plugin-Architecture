@@ -39,6 +39,7 @@ plugin.beforeExtensionPlugged = function(){
 	if(typeof this.config.http.session!='undefined' && this.config.http.session.enabled){
 		let sessionConfig = this.config.http.session;
 		var session = require('express-session');
+		let sessionCookieName = this.getConfigValue('http.session.name');
 		let persistentValue = this.getConfigValue('http.session.persistent');
 		if(persistentValue=='true' || persistentValue==true){
 			if('CouchSessionStore'==sessionConfig.store){
@@ -46,7 +47,7 @@ plugin.beforeExtensionPlugged = function(){
 				let couchService = plugin.getService(COUCH_SERVICE_ID);
 				var persistentStore = new StoreClass(couchService);
 				let sessionMiddleware = session({
-				  name: sessionConfig.name,
+				  name: sessionCookieName,
 				  secret: sessionConfig.secret,
 				  resave: false,
 				  saveUninitialized: true,
@@ -68,7 +69,7 @@ plugin.beforeExtensionPlugged = function(){
 			}
 		}else{
 			this.endpoint.use(session({
-			  name: sessionConfig.name,
+			  name: sessionCookieName,
 			  secret: sessionConfig.secret,
 			  resave: false,
 			  saveUninitialized: true,

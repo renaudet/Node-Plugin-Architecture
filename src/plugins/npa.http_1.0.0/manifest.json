@@ -10,7 +10,7 @@
   	"supportedLocale": "en-US,en,fr-FR,fr",
   	"session": {
   		"enabled": true,
-	    "name": "NPA",
+	    "name": "$SESSION_COOKIE_NAME,NPA",
 	    "secret": "npa4node",
 	    "expires": "$HTTP_SESSION_TIMEOUT,900",
 	    "checkperiod": "$HTTP_SESSION_CLEANER_TIMEOUT,120",
