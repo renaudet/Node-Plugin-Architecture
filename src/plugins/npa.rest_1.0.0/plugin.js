@@ -32,6 +32,11 @@ plugin.agent = new https.Agent({
   }
  */
 plugin.performRestApiCall = function(restContext,onRestInvocationCompletedCallback){
+	this.trace('->performRestApiCall()');
+	if(this.canLog('trace')){
+		this.trace('restContext:');
+		this.trace(JSON.stringify(restContext,null,'\t'));
+	}
 	var port = typeof restContext.port!='undefined'?':'+restContext.port:'';
 	var url = (restContext.secured?'https://':'http://')+restContext.host+port+restContext.uri;
 	this.debug('url: '+url);
@@ -41,6 +46,7 @@ plugin.performRestApiCall = function(restContext,onRestInvocationCompletedCallba
 		restContext.options = {};
 	}
 	if(restContext.secured && restContext.acceptCertificate){
+		this.trace('using HTTPS agent');
 		restContext.options.httpsAgent = this.agent;
 	}
 	if(typeof restContext.username!='undefined' && restContext.username.length>0){
@@ -59,6 +65,7 @@ plugin.performRestApiCall = function(restContext,onRestInvocationCompletedCallba
 	if('DELETE'==restContext.method){
 		this.performDeleteRestApiCall(restContext,onRestInvocationCompletedCallback);
 	}	
+	this.trace('<-performRestApiCall()');
 }
 
 plugin.performGetRestApiCall = function(restContext,onRestInvocationCompletedCallback){
