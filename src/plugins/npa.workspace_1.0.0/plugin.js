@@ -236,8 +236,21 @@ plugin.absolutePath = function(resourcePath){
 	return this.location+'/'+resourcePath;
 }
 
+plugin.checkExists = function(path){
+	this.trace('->checkExists()');
+	this.debug('path: '+path);
+	fs.mkdirSync(path,{"recursive": true});
+	this.trace('<-checkExists()');
+}
+
 plugin.renameFile = function(baseDir,oldName,newName){
+	this.trace('->renameFile()');
+	this.debug('baseDir: '+baseDir);
+	this.debug('oldName: '+oldName);
+	this.debug('newName: '+newName);
+	fs.mkdirSync(baseDir,{"recursive": true});
 	fs.renameSync(baseDir+'/'+oldName,baseDir+'/'+newName);
+	this.trace('<-renameFile()');
 }
 
 module.exports = plugin;
