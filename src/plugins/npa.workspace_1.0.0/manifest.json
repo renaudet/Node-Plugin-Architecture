@@ -11,7 +11,7 @@
   	{
   		"point": "npa.log.provider",
   		"id": "npa.workspace.logger",
-  		"dir": "workspace"
+  		"dir": "npa.workspace"
   	},
   	{
   		"point": "npa.core.service",

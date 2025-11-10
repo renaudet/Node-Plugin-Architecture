@@ -32,7 +32,7 @@
   	{
   		"point": "npa.log.provider",
   		"id": "npa.http.logger",
-  		"dir": "http"
+  		"dir": "npa.http"
   	},
   	{
   		"point": "npa.core.service",

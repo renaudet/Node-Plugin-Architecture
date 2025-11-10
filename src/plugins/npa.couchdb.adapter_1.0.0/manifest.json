@@ -11,7 +11,7 @@
   	{
   		"point": "npa.log.provider",
   		"id": "npa.couchdb.adapter.logger",
-  		"dir": "couchdb"
+  		"dir": "npa.couchdb.adapter"
   	},
   	{
   		"point": "npa.core.service",
