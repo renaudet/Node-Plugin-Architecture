@@ -142,7 +142,7 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 		if('GET'==extensionPointConfig.method){
 			var command = {};
 			command.execute = function(){
-				plugin.info('adding a GET HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
+				plugin.info('adding a GET HTTP handler with schema '+extensionPointConfig.schema+' to router #'+extensionPointConfig.router);
 				var router = plugin.routers[extensionPointConfig.router];
 				if(typeof router!="undefined"){
 					let extender = wrapper.getPlugin();
@@ -170,7 +170,7 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 		if('PUT'==extensionPointConfig.method){
 			var command = {};
 			command.execute = function(){
-				plugin.info('adding a PUT HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
+				plugin.info('adding a PUT HTTP handler with schema '+extensionPointConfig.schema+' to router #'+extensionPointConfig.router);
 				var router = plugin.routers[extensionPointConfig.router];
 				if(typeof router!="undefined"){
 					let extender = wrapper.getPlugin();
@@ -184,7 +184,7 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 		if('DELETE'==extensionPointConfig.method){
 			var command = {};
 			command.execute = function(){
-				plugin.info('adding a DELETE HTTP handler with schema '+extensionPointConfig.schema+' to route '+extensionPointConfig.router);
+				plugin.info('adding a DELETE HTTP handler with schema '+extensionPointConfig.schema+' to router #'+extensionPointConfig.router);
 				var router = plugin.routers[extensionPointConfig.router];
 				if(typeof router!="undefined"){
 					let extender = wrapper.getPlugin();
