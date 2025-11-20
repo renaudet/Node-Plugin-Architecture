@@ -26,7 +26,8 @@
   	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
   	{"type": "plugin","id": "npa.core","version": "1.0.0"},
   	{"type": "plugin","id": "npa.couchdb.adapter","version": "1.0.0"},
-  	{"type": "plugin","id": "npa.runtime.props","version": "1.0.0"}
+  	{"type": "plugin","id": "npa.runtime.props","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.telemetry","version": "1.0.0"}
   ],
   "extends": [
   	{
@@ -71,6 +72,34 @@
 		"type": "boolean",
 		"value": false,
 		"locked": false
+  	},
+  	{
+  		"point": "npa.runtime.property.provider",
+  		"id": "npa.http.session.count",
+		"name": "http.session.count",
+		"description": "Current HTTP session(s) count",
+		"type": "int",
+		"value": 0,
+		"locked": false
+  	},
+  	{
+  		"point": "npa.runtime.property.provider",
+  		"id": "npa.http.authenticated.session.count",
+		"name": "http.session.authenticated.count",
+		"description": "Current HTTP authenticated session(s) count",
+		"type": "int",
+		"value": 0,
+		"locked": false
+  	},
+  	{
+  		"point": "npa.telemetry.dimension.provider",
+  		"id": "npa.http.telemetry.session.provider",
+		"name": "http.session",
+		"displayLabel": "HTTP Sessions",
+		"description": "HTTP authenticated session(s) count",
+		"type": "int",
+		"unit": "",
+		"maxPoints": 60
   	}
   ],
   "provides": [

@@ -12,6 +12,9 @@ const bodyParser = require('body-parser');
 const ENV_PORT = 'PORT';
 const ENV_NAME = 'APPLICATION_NAME';
 const RUNTIME_PROPERTIES_SERVICE_NAME = 'properties';
+const TELEMETRY_SERVICE_NAME = 'telemetry';
+const HTTP_SESSION_DIMENSION = 'http.session';
+const TELEMETRY_COLLECT_TIMEOUT = 30;
 
 var plugin = new Plugin();
 plugin.endpoint = null;
@@ -84,6 +87,12 @@ plugin.beforeExtensionPlugged = function(){
 			res.setHeader('X-Powered-By','NPA HttpServer v'+plugin.config.version);
 			res.setHeader('Accept-Language',plugin.config.http.supportedLocale);
 			if(req.path.indexOf('.')>0){
+				if(req.path.endsWith('.html')){
+					let session = req.session;
+					if(typeof session!='undefined' && session!=null){
+						session.lastRequestUri = req.path;
+					}
+				}
 				next();
 			}else{
 				if(!plugin.sessionStore){
@@ -279,15 +288,53 @@ plugin.startListener = function(requiredPort=null){
 	}
 	
 	if(typeof this.config.http.session!='undefined' && this.config.http.session.enabled){
-		let sessionConfig = this.config.http.session;
+		this.info('starting the HTTP Session reaper thread...');
 		setTimeout(function(){ plugin.checkSessions(); },plugin.getConfigValue('http.session.checkperiod','integer')*1000);
+		this.info('starting the Telemetry data collection thread...');
+		setTimeout(function(){ plugin.collectTelemetry(); },10*1000);
 	}
 	this.trace('<-startListener()');
+}
+
+plugin.collectTelemetry = function(){
+	this.trace('->collectTelemetry()');
+	let telemetryService = this.getService(TELEMETRY_SERVICE_NAME);
+	let sessionCount = 0;
+	if(this.sessionStore!=null){
+		this.sessionStore.all(function(err,sessions){
+			var sessionIdTable = [];
+			for(var sessionId in sessions){
+				sessionIdTable.push(sessionId);
+			}
+			var checkSessionsById = function(sessionIdLst,index,then){
+				if(index < sessionIdLst.length){
+					var sessionId = sessionIdLst[index];
+					plugin.sessionStore.get(sessionId,function(err,sessObj){
+						if(!err && typeof sessObj.lastRequestUri!='undefined'){
+							sessionCount++;
+						}
+						checkSessionsById(sessionIdLst,index+1,then);
+					});
+				}else{
+					then();
+				}
+			}
+			checkSessionsById(sessionIdTable,0,function(){
+				let telemetryData = {"timestamp": moment().format('YYYY/MM/DD HH:mm:ss'),"count": sessionCount};
+				telemetryService.push(HTTP_SESSION_DIMENSION,telemetryData);
+				plugin.trace('<-collectTelemetry()');
+				setTimeout(function(){ plugin.collectTelemetry(); },TELEMETRY_COLLECT_TIMEOUT*1000);
+			});
+		});
+	}else{
+		this.trace('<-collectTelemetry()');
+	}
 }
 
 plugin.checkSessions = function(){
 	this.trace('->checkSessions()');
 	var now = moment();
+	let propService = this.getService(RUNTIME_PROPERTIES_SERVICE_NAME);
 	this.trace('Session reaper thread begin ('+now.format('HH:mm:ss')+')...');
 	if(this.sessionStore!=null){
 		this.sessionStore.all(function(err,sessions){
@@ -296,6 +343,8 @@ plugin.checkSessions = function(){
 				sessionIdTable.push(sessionId);
 			}
 			plugin.debug('found '+sessionIdTable.length+' sessions in store');
+    		propService.setProperty('http.session.count',sessionIdTable.length);
+    		let activeSessionCount = 0;
 			var checkSessionsById = function(sessionIdLst,index,then){
 				if(index < sessionIdLst.length){
 					var sessionId = sessionIdLst[index];
@@ -309,12 +358,20 @@ plugin.checkSessions = function(){
 								plugin.debug('last access: '+sessObj.lastAccess);
 								plugin.debug('session is alive: '+sessObj.alive);
 								if(sessObj.lastAccess && sessObj.alive){
-									var inactivityPeriod = now.diff(sessObj.lastAccess);
-									plugin.debug('inactivity period is: '+inactivityPeriod);
-									if(inactivityPeriod>1000*plugin.getConfigValue('http.session.expires','integer')){
-										plugin.info('-session ID #'+sessionId+' expired (created: '+moment(sessObj.created).format('HH:mm:ss')+')... Cleaning up!');
+									if(typeof sessObj.lastRequestUri=='undefined'){
+										plugin.info('-session ID #'+sessionId+' is orphean (created: '+moment(sessObj.created).format('HH:mm:ss')+')... Cleaning up!');
 										plugin.sessionStore.destroy(sessionId);
+									}else{
+										var inactivityPeriod = now.diff(sessObj.lastAccess);
+										plugin.debug('inactivity period is: '+inactivityPeriod);
+										if(inactivityPeriod>1000*plugin.getConfigValue('http.session.expires','integer')){
+											plugin.info('-session ID #'+sessionId+' expired (created: '+moment(sessObj.created).format('HH:mm:ss')+')... Cleaning up!');
+											plugin.sessionStore.destroy(sessionId);
+										}else{
+											activeSessionCount++;
+										}
 									}
+									propService.setProperty('http.session.authenticated.count',activeSessionCount);
 								}else{
 									plugin.info('-session ID #'+sessionId+' is a ghost - cleaning');
 									plugin.sessionStore.destroy(sessionId);

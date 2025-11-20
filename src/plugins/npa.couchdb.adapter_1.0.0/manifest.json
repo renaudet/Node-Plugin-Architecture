@@ -5,7 +5,8 @@
   "plugin": "plugin.js",
   "requires": [
   	{"type": "plugin","id": "npa.core","version": "1.0.0"},
-  	{"type": "plugin","id": "npa.logging","version": "1.0.0"}
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.telemetry","version": "1.0.0"}
   ],
   "extends": [
   	{
@@ -17,6 +18,16 @@
   		"point": "npa.core.service",
   		"id": "npa.couchdb.adapter.service",
   		"service": "couchdb"
+  	},
+  	{
+  		"point": "npa.telemetry.dimension.provider",
+  		"id": "npa.couchdb.adapter.stat.provider",
+		"name": "database.transaction",
+		"displayLabel": "Database Transactions",
+		"description": "Number of database transaction per inteval (30sec.)",
+		"type": "int",
+		"unit": "",
+		"maxPoints": 60
   	}
   ],
   "provides": [

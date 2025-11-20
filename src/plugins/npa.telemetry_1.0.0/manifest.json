@@ -1,0 +1,35 @@
+{
+  "id": "npa.telemetry",
+  "name": "Runtime properties support plugin",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.core","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.telemetry.logger",
+  		"dir": "npa.telemetry"
+  	},
+  	{
+  		"point": "npa.core.service",
+  		"id": "npa.telemetry.service",
+  		"service": "telemetry"
+  	},
+  	{
+  		"point": "npa.telemetry.dimension.provider",
+  		"id": "npa.telemetry.memory.stat.provider",
+		"name": "used.heap",
+		"displayLabel": "Used Memory Heap",
+		"description": "Used Heap size in Mb",
+		"type": "int",
+		"unit": "",
+		"maxPoints": 60
+  	}
+  ],
+  "provides": [
+	{"id": "npa.telemetry.dimension.provider"}
+  ]
+}

@@ -6,13 +6,22 @@
 const Plugin = require('../../core/plugin.js');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
+const moment = require('moment');
 const PROTOCOL = 'http://';
 const ENV_VAR_DB_PREFIX = 'COUCH_DATABASE_PREFIX';
+const TELEMETRY_SERVICE_NAME = 'telemetry';
+const DATABASE_TX_DIMENSION = 'database.transaction';
+const TELEMETRY_COLLECT_TIMEOUT = 30;
 
 var plugin = new Plugin();
 plugin.datasources = {};
 plugin.baseUrlCache = {};
 plugin.dbPrefix = '';
+plugin.dbTxPerInterval = 0;
+
+plugin.onConfigurationLoaded = function(){
+	setTimeout(function(){ plugin.collectTelemetry(); },TELEMETRY_COLLECT_TIMEOUT*1000);
+}
 
 plugin.beforeExtensionPlugged = function(){
 	if(typeof process.env[ENV_VAR_DB_PREFIX]!='undefined'){
@@ -220,6 +229,7 @@ plugin.query = function(reference,query,callback){
             'Content-Type': 'application/json'
     }})
 	.then(function (response) {
+		plugin.dbTxPerInterval++;
 		plugin.debug('<-query()');
 		callback(null,response.data.docs);
 	})
@@ -255,6 +265,7 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 			plugin.debug('<-findByPrimaryKey()');
 			callback(response.data.error,null);
 		}else{
+			plugin.dbTxPerInterval++;
 			plugin.debug('<-findByPrimaryKey()');
 			callback(null,response.data);
 		}
@@ -292,6 +303,7 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 			plugin.debug('<-createRecord() - error couchDB exception');
 			callback(response.data.error,null);
 		}else{
+			plugin.dbTxPerInterval++;
 			plugin.debug('<-createRecord() - success');
 			data._rev = response.data.rev;
 			callback(null,data);
@@ -326,6 +338,7 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 					plugin.error(JSON.stringify(response.data,null,'\t'));
 					callback(response.data.error,null);
 				}else{
+					plugin.dbTxPerInterval++;
 					plugin.debug('<-updateRecord() success');
 					data._rev = response.data.rev;
 					callback(null,data);
@@ -363,6 +376,7 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 						plugin.debug('<-deleteRecord()');
 						callback(response.data.error,null);
 					}else{
+						plugin.dbTxPerInterval++;
 						plugin.debug('<-deleteRecord()');
 						callback(null,{"status": "deleted","record":record });
 					}
@@ -377,6 +391,16 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 			}
 		}
 	});
+}
+
+plugin.collectTelemetry = function(){
+	this.trace('->collectTelemetry()');
+	let telemetryService = this.getService(TELEMETRY_SERVICE_NAME);
+	let telemetryData = {"timestamp": moment().format('YYYY/MM/DD HH:mm:ss'),"count": this.dbTxPerInterval};
+	telemetryService.push(DATABASE_TX_DIMENSION,telemetryData);
+	this.dbTxPerInterval = 0;
+	plugin.trace('<-collectTelemetry()');
+	setTimeout(function(){ plugin.collectTelemetry(); },TELEMETRY_COLLECT_TIMEOUT*1000);
 }
 
 module.exports = plugin;

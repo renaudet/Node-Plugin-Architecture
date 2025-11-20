@@ -4,13 +4,25 @@
   "version": "1.0.0",
   "plugin": "plugin.js",
   "requires": [
-  	{"type": "plugin","id": "npa.logging","version": "1.0.0"}
+  	{"type": "plugin","id": "npa.core","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.telemetry","version": "1.0.0"}
   ],
   "extends": [
   	{
   		"point": "npa.log.provider",
   		"id": "npa.rest.logger",
-  		"dir": "rest"
+  		"dir": "npa.rest"
+  	},
+  	{
+  		"point": "npa.telemetry.dimension.provider",
+  		"id": "npa.rest.stat.provider",
+		"name": "rest.calls",
+		"displayLabel": "External REST calls",
+		"description": "Total number of external REST calls",
+		"type": "int",
+		"unit": "",
+		"maxPoints": 60
   	}
   ],
   "provides": [

@@ -6,11 +6,20 @@
 const Plugin = require('../../core/plugin.js');
 const axios = require('axios');
 const https = require('https');
+const moment = require('moment');
+const TELEMETRY_SERVICE_NAME = 'telemetry';
+const REST_CALLS_DIMENSION = 'rest.calls';
+const TELEMETRY_COLLECT_TIMEOUT = 30;
 
 var plugin = new Plugin();
 plugin.agent = new https.Agent({
  rejectUnauthorized: false
 });
+plugin.totalRestCallCount = 0;
+
+plugin.onConfigurationLoaded = function(){
+	setTimeout(function(){ plugin.collectTelemetry(); },TELEMETRY_COLLECT_TIMEOUT*1000);
+}
 
 /*
  * restContext:
@@ -72,6 +81,7 @@ plugin.performGetRestApiCall = function(restContext,onRestInvocationCompletedCal
 	this.trace('->performGetRestApiCall()');
 	axios.get(restContext.url,restContext.options)
 	.then(function (response) {
+		plugin.totalRestCallCount++;
 		try{
 			onRestInvocationCompletedCallback(null,response);
 		}catch(e){
@@ -91,6 +101,7 @@ plugin.performPostRestApiCall = function(restContext,onRestInvocationCompletedCa
 	this.debug('payload: '+JSON.stringify(restContext.payload,null,'\t'));
 	axios.post(restContext.url,restContext.payload,restContext.options)
 	.then(function (response) {
+		plugin.totalRestCallCount++;
 		plugin.debug('<-performPostRestApiCall() - success');
 		onRestInvocationCompletedCallback(null,response);
 	})
@@ -108,6 +119,7 @@ plugin.performPutRestApiCall = function(restContext,onRestInvocationCompletedCal
 	this.debug('payload: '+JSON.stringify(restContext.payload,null,'\t'));
 	axios.put(restContext.url,restContext.payload,restContext.options)
 	.then(function (response) {
+		plugin.totalRestCallCount++;
 		onRestInvocationCompletedCallback(null,response);
 	})
 	.catch(function (error) {
@@ -122,6 +134,7 @@ plugin.performDeleteRestApiCall = function(restContext,onRestInvocationCompleted
 	this.trace('->performDeleteRestApiCall()');
 	axios.delete(restContext.url,{},restContext.options)
 	.then(function (response) {
+		plugin.totalRestCallCount++;
 		onRestInvocationCompletedCallback(null,response);
 	})
 	.catch(function (error) {
@@ -130,6 +143,15 @@ plugin.performDeleteRestApiCall = function(restContext,onRestInvocationCompleted
 		//error.response.data
 		onRestInvocationCompletedCallback('REST invocation failed for '+restContext.url,error);
 	});
+}
+
+plugin.collectTelemetry = function(){
+	this.trace('->collectTelemetry()');
+	let telemetryService = this.getService(TELEMETRY_SERVICE_NAME);
+	let telemetryData = {"timestamp": moment().format('YYYY/MM/DD HH:mm:ss'),"count": this.totalRestCallCount};
+	telemetryService.push(REST_CALLS_DIMENSION,telemetryData);
+	this.trace('<-collectTelemetry()');
+	setTimeout(function(){ plugin.collectTelemetry(); },TELEMETRY_COLLECT_TIMEOUT*1000);
 }
 
 module.exports = plugin;
