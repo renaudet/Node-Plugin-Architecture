@@ -21,7 +21,6 @@ function getPosition(elem) {
         tmp = tmp.offsetParent;
     } while( tmp !== null );
     pos.b = pos.t + elem.offsetHeight;
- 
     return pos;
 }
 /*
@@ -134,6 +133,7 @@ ImageLoader.prototype.getImage = function(key){
 }
 ImageLoader.prototype.onReadyState = function(){
 }
+
 function ReactivArea(id,parentDivId,width,height){
 	var uic = {};
   	uic.id = id;
@@ -186,7 +186,9 @@ function ReactivArea(id,parentDivId,width,height){
 	}
 	uic.getPointerPos = function(e){
 		var coord = getCursorPosition(e);
-		var pos = new Point(coord[0]-this.location.l,coord[1]-this.location.t);
+		//var pos = new Point(coord[0]-this.location.l,coord[1]-this.location.t);
+		var rect = this.canvas.getBoundingClientRect();
+		var pos = new Point(coord[0]-rect.left,coord[1]-rect.top);
 		return pos;
 	}
 	uic.makeGraphicEvent = function(e,type){
