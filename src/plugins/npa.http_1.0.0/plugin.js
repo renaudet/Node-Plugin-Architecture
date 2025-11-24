@@ -327,7 +327,10 @@ plugin.collectTelemetry = function(){
 			});
 		});
 	}else{
+		let telemetryData = {"timestamp": moment().format('YYYY/MM/DD HH:mm:ss'),"count": 0};
+		telemetryService.push(HTTP_SESSION_DIMENSION,telemetryData);
 		this.trace('<-collectTelemetry()');
+		setTimeout(function(){ plugin.collectTelemetry(); },TELEMETRY_COLLECT_TIMEOUT*1000);
 	}
 }
 

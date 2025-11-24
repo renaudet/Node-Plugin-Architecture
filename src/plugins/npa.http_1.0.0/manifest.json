@@ -96,7 +96,7 @@
   		"id": "npa.http.telemetry.session.provider",
 		"name": "http.session",
 		"displayLabel": "HTTP Sessions",
-		"description": "HTTP authenticated session(s) count",
+		"description": "Authenticated HTTP session(s) count",
 		"type": "int",
 		"unit": "",
 		"maxPoints": 60
