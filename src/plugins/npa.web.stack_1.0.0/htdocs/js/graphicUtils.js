@@ -279,5 +279,12 @@ function ReactivArea(id,parentDivId,width,height){
       this.canvas.height = height;
       this.repaint();
     }
+    uic.setSize = function(width,height){
+      this.width = width;
+      this.canvas.width = width;
+      this.height = height;
+      this.canvas.height = height;
+      this.repaint();
+    }
 	return uic;
 }
