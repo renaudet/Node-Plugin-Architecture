@@ -227,11 +227,15 @@ function ReactivArea(id,parentDivId,width,height){
 	}
 	uic.keyDown = function(e){
 		var event = e || window.event;
+		console.log(event);
 		var keyEvent = new KeyboardEvent(event.keyCode,KeyboardEvent.prototype.KEY_DOWN);
-		if (event.keyCode==8 || event.keyCode==9 || event.keyCode==38 || event.keyCode==40) {
+		if (event.keyCode==8 || event.keyCode==9 || event.keyCode==38 || event.keyCode==40 || event.keyCode==52 || event.keyCode==91) {
 			e.preventDefault();
 	        e.stopPropagation();
-	    	return false;
+	    	//return false;
+	    	if(this.handler.enabled){
+	    		this.handler.onKeyDown(keyEvent);
+	    	}
 	    }else{
 	    	if(this.handler.enabled){
 	    		this.handler.onKeyDown(keyEvent);
@@ -252,6 +256,13 @@ function ReactivArea(id,parentDivId,width,height){
 	uic.setEnabled = function(state){
 		this.enabled = state;
 		this.repaint();
+	}
+	uic.getCanvasGraphicContext = function(){
+		if(this.canvas && this.canvas.getContext){
+			return this.canvas.getContext('2d');
+		}else{
+			return null;
+		}
 	}
 	uic.repaint = function(){
 		if(this.canvas && this.canvas.getContext){
