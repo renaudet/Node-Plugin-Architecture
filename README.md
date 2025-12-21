@@ -1,4 +1,5 @@
-# Node-Plugin-Architecture
+# ![A Node Plugin Architecture](https://github.com/renaudet/Node-Plugin-Architecture/blob/main/docs/header.png?raw=true)
+
 A Plugin-based architecture for Node.js applications
 
 This project is a proof-of-concept for an Eclipse-like Plug-in-like architecture for applications written in Node.js.
