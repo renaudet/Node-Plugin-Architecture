@@ -227,9 +227,15 @@ function ReactivArea(id,parentDivId,width,height){
 	}
 	uic.keyDown = function(e){
 		var event = e || window.event;
-		console.log(event);
+		console.log('graphicUtils onKeyDown() keyCode: '+event.keyCode);
 		var keyEvent = new KeyboardEvent(event.keyCode,KeyboardEvent.prototype.KEY_DOWN);
-		if (event.keyCode==8 || event.keyCode==9 || event.keyCode==38 || event.keyCode==40 || event.keyCode==52 || event.keyCode==91) {
+		if (event.keyCode==8 || 
+			event.keyCode==9 || 
+			event.keyCode==38 || 
+			event.keyCode==40 || 
+			event.keyCode==52 || 
+			event.keyCode==91 ||
+			event.keyCode==111) {
 			e.preventDefault();
 	        e.stopPropagation();
 	    	//return false;
