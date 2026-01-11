@@ -11,7 +11,7 @@
   	{
   		"point": "npa.log.provider",
   		"id": "npa.crypto.logger",
-  		"dir": "crypto"
+  		"dir": "npa.crypto"
   	},
   	{
   		"point": "npa.core.service",
