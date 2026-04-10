@@ -93,7 +93,7 @@ plugin.getDataPoints = function(dimensionName){
 plugin.collectTelemetry = function(){
 	this.trace('->collectTelemetry()');
 	let usedHeapMb = Math.floor(process.memoryUsage().heapUsed/(1024*1024));
-	let telemetryData = {"timestamp": moment().format('YYYY/MM/DD HH:mm:ss'),"count": usedHeapMb};
+	let telemetryData = {"timestamp": moment().format(DATE_TIME_FORMAT),"count": usedHeapMb};
 	this.push(USED_HEAP_DIMENSION,telemetryData);
 	this.trace('<-collectTelemetry()');
 	setTimeout(function(){ plugin.collectTelemetry(); },TELEMETRY_COLLECT_TIMEOUT*1000);
