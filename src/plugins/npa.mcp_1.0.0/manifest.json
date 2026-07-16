@@ -1,0 +1,46 @@
+{
+  "id": "npa.mcp",
+  "name": "MCP Server support plugin",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "mcp": {
+    "name": "npa-mcp-server",
+    "version": "1.0.0"
+  },
+  "requires": [
+    {"type": "plugin","id": "npa.core","version": "1.0.0"},
+    {"type": "plugin","id": "npa.logging","version": "1.0.0"},
+    {"type": "plugin","id": "npa.http","version": "1.0.0"}
+  ],
+  "extends": [
+    {
+      "point": "npa.log.provider",
+      "id": "npa.mcp.logger",
+      "dir": "npa.mcp"
+    },
+    {
+      "point": "npa.http.router",
+      "id": "npa.mcp.router",
+      "path": "/mcp"
+    },
+    {
+      "point": "npa.http.handler",
+      "id": "npa.mcp.post.handler",
+      "router": "npa.mcp.router",
+      "method": "POST",
+      "schema": "/",
+      "handler": "mcpRequestHandler"
+    },
+    {
+      "point": "npa.http.handler",
+      "id": "npa.mcp.health.handler",
+      "router": "npa.mcp.router",
+      "method": "GET",
+      "schema": "/health",
+      "handler": "mcpHealthHandler"
+    }
+  ],
+  "provides": [
+    {"id": "npa.mcp.tool"}
+  ]
+}
