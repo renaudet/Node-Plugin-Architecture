@@ -62,24 +62,26 @@ plugin.buildApiRegistrar = function(extenderId,extensionConfig) {
 	let zodShape = plugin.buildZodSchema(schema.properties, schema.required);
 
 	plugin.debug('<-buildApiRegistrar()');
-	return function(server) {
-        server.tool(toolName, toolDescription, zodShape, async (args) => {
-            return new Promise((resolve) => {
-                // Récupérer le plugin contributeur via le runtime
-                let contributorPlugin = plugin.runtime.getPlugin(extenderId);
-                let handlerFn = contributorPlugin[extensionConfig.handler];
-                
-                // Construire des objets req/res simulés (duck-typed)
-                let fakeReq = { body: args };
-                let fakeRes = {
-                    json: (obj) => resolve({
-                        content: [{ type: 'text', text: JSON.stringify(obj) }]
-                    }),
-                    status: function(code) { this._code = code; return this; }
-                };
-                handlerFn.call(contributorPlugin, fakeReq, fakeRes);
-            });
-        });
+	return function(server, httpReq) {
+	       server.tool(toolName, toolDescription, zodShape, async (args) => {
+	           return new Promise((resolve) => {
+	               // Récupérer le plugin contributeur via le runtime
+	               let contributorPlugin = plugin.runtime.getPlugin(extenderId);
+	               let handlerFn = contributorPlugin[extensionConfig.handler];
+	               
+	               // Construire des objets req/res simulés (duck-typed)
+	               // Les headers HTTP de la requête MCP originale sont propagés
+	               // pour permettre la vérification de sécurité (x-api-key, Authorization...)
+	               let fakeReq = { body: args, headers: httpReq ? httpReq.headers : {}, query: {} };
+	               let fakeRes = {
+	                   json: (obj) => resolve({
+	                       content: [{ type: 'text', text: JSON.stringify(obj) }]
+	                   }),
+	                   status: function(code) { this._code = code; return this; }
+	               };
+	               handlerFn.call(contributorPlugin, fakeReq, fakeRes);
+	           });
+	       });
 
 	};
 };
@@ -117,12 +119,13 @@ plugin.lazzyPlug = function(extenderId, extensionConfig) {
 
 plugin.mcpRequestHandler = async function(req, res) {
 	plugin.debug('->mcpRequestHandler()');
+	plugin.debug('mcpRequestHandler() - headers: '+JSON.stringify(req.headers));
 	const mcpName = plugin.getConfigValue('mcp.name');
 	const mcpVersion = plugin.getConfigValue('mcp.version');
 	const server = new McpServer({ name: mcpName, version: mcpVersion });
 
 	for (const register of plugin.toolRegistrars) {
-		register(server);
+		register(server, req);
 	}
 
 	const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
