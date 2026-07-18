@@ -31,6 +31,14 @@ plugin.buildZodSchema = function(properties, required) {
 		let field;
 		if (def.enum) {
 			field = z.enum(def.enum);
+		} else if (def.type === 'boolean') {
+			field = z.boolean();
+		} else if (def.type === 'integer' || def.type === 'number') {
+			field = z.number();
+		} else if (def.type === 'array') {
+			field = z.array(z.any());
+		} else if (def.type === 'object') {
+			field = z.record(z.string(), z.any());
 		} else {
 			field = z.string();
 		}
@@ -53,36 +61,78 @@ plugin.buildZodSchema = function(properties, required) {
 plugin.buildApiRegistrar = function(extenderId,extensionConfig) {
 	plugin.debug('->buildApiRegistrar(' + extensionConfig.id + ')');
 	let apidoc = extensionConfig.apidoc;
-	// Extract the first path + post operation from the OpenAPI descriptor
+	// Extract the first path + operation from the OpenAPI descriptor
 	let path = Object.keys(apidoc.paths)[0];
-	let operation = apidoc.paths[path].post;
+	let pathDef = apidoc.paths[path];
+	let method = Object.keys(pathDef)[0]; // post, get, put, delete...
+	let operation = pathDef[method];
 	let toolName = operation.operationId;
 	let toolDescription = operation.description || operation.summary;
-	let schema = operation.requestBody.content['application/json'].schema;
-	let zodShape = plugin.buildZodSchema(schema.properties, schema.required);
+	// Build zodShape from both path/query parameters AND requestBody (merged)
+	let props = {};
+	let required = [];
+	if (operation.parameters) {
+		for (let param of operation.parameters) {
+			props[param.name] = param.schema || { type: 'string' };
+			if (param.description) props[param.name].description = param.description;
+			if (param.required) required.push(param.name);
+		}
+	}
+	if (operation.requestBody) {
+		let schema = operation.requestBody.content['application/json'].schema;
+		Object.assign(props, schema.properties || {});
+		if (schema.required) required = required.concat(schema.required);
+	}
+	let zodShape = plugin.buildZodSchema(props, required);
+
+	// Pre-compute which parameter names go to params/query vs body
+	let pathParamNames = new Set();
+	let queryParamNames = new Set();
+	if (operation.parameters) {
+		for (let param of operation.parameters) {
+			if (param.in === 'path') pathParamNames.add(param.name);
+			else if (param.in === 'query') queryParamNames.add(param.name);
+		}
+	}
 
 	plugin.debug('<-buildApiRegistrar()');
 	return function(server, httpReq) {
-	       server.tool(toolName, toolDescription, zodShape, async (args) => {
-	           return new Promise((resolve) => {
-	               // Récupérer le plugin contributeur via le runtime
-	               let contributorPlugin = plugin.runtime.getPlugin(extenderId);
-	               let handlerFn = contributorPlugin[extensionConfig.handler];
-	               
-	               // Construire des objets req/res simulés (duck-typed)
-	               // Les headers HTTP de la requête MCP originale sont propagés
-	               // pour permettre la vérification de sécurité (x-api-key, Authorization...)
-	               let fakeReq = { body: args, headers: httpReq ? httpReq.headers : {}, query: {} };
-	               let fakeRes = {
-	                   json: (obj) => resolve({
-	                       content: [{ type: 'text', text: JSON.stringify(obj) }]
-	                   }),
-	                   status: function(code) { this._code = code; return this; }
-	               };
-	               handlerFn.call(contributorPlugin, fakeReq, fakeRes);
-	           });
-	       });
+		server.tool(toolName, toolDescription, zodShape, async (args) => {
+			return new Promise((resolve) => {
+				// Récupérer le plugin contributeur via le runtime
+				let contributorPlugin = plugin.runtime.getPlugin(extenderId);
+				let handlerFn = contributorPlugin[extensionConfig.handler];
 
+				// Dissocier les arguments selon leur rôle déclaré dans l'apidoc :
+				// - path params  → req.params
+				// - query params → req.query
+				// - le reste     → req.body
+				// Cas spécial : si le body contient un unique champ "data" de type objet,
+				// on l'étale directement comme req.body pour les handlers à body dynamique.
+				// Les headers HTTP de la requête MCP originale sont propagés
+				// pour permettre la vérification de sécurité (x-api-key, Authorization...)
+				let params = {};
+				let query = {};
+				let body = {};
+				for (let [key, value] of Object.entries(args)) {
+					if (pathParamNames.has(key)) params[key] = value;
+					else if (queryParamNames.has(key)) query[key] = value;
+					else body[key] = value;
+				}
+				if (Object.keys(body).length === 1 && typeof body.data === 'object' && body.data !== null) {
+					body = body.data;
+				}
+				let fakeReq = { body, headers: httpReq ? httpReq.headers : {}, params, query };
+				let fakeRes = {
+					json: (obj) => resolve({
+						content: [{ type: 'text', text: JSON.stringify(obj) }]
+					}),
+					status: function(code) { this._code = code; return this; },
+					set: function() { return this; }
+				};
+				handlerFn.call(contributorPlugin, fakeReq, fakeRes);
+			});
+		});
 	};
 };
 
