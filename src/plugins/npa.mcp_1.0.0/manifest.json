@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "plugin": "plugin.js",
   "mcp": {
-    "name": "npa-mcp-server",
+    "name": "$MCP_SERVER_NAME,npa-mcp-server",
     "version": "1.0.0"
   },
   "requires": [
