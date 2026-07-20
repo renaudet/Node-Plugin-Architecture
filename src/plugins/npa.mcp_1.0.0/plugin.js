@@ -12,7 +12,17 @@ const Plugin = require('../../core/plugin.js');
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
 const { z } = require('zod');
+const fs = require('fs');
+const nodePath = require('path');
 const MCP_EXTENSION_POINT_ID = 'npa.mcp.tool';
+
+const MIME_TYPES = {
+	'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+	'.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
+	'.pdf': 'application/pdf', '.zip': 'application/zip',
+	'.txt': 'text/plain', '.json': 'application/json',
+	'.js': 'text/javascript', '.html': 'text/html', '.css': 'text/css'
+};
 
 var plugin = new Plugin();
 
@@ -124,12 +134,30 @@ plugin.buildApiRegistrar = function(extenderId,extensionConfig) {
 				}
 				let fakeReq = { body, headers: httpReq ? httpReq.headers : {}, params, query };
 				let fakeRes = {
-					json: (obj) => resolve({
-						content: [{ type: 'text', text: JSON.stringify(obj) }]
-					}),
-					status: function(code) { this._code = code; return this; },
-					set: function() { return this; }
-				};
+						json: (obj) => resolve({
+							content: [{ type: 'text', text: JSON.stringify(obj) }]
+						}),
+						download: (absoluteFilePath, filename) => {
+							try {
+								const ext = nodePath.extname(filename || absoluteFilePath).toLowerCase();
+								const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
+								const blob = fs.readFileSync(absoluteFilePath).toString('base64');
+								const uri = 'workspace:///' + (filename || nodePath.basename(absoluteFilePath));
+								resolve({
+									content: [
+										{ type: 'resource', resource: { uri, blob, mimeType } },
+										{ type: 'text', text: blob }
+									]
+								});
+							} catch(e) {
+								resolve({
+									content: [{ type: 'text', text: JSON.stringify({ status: 500, message: e.message }) }]
+								});
+							}
+						},
+						status: function(code) { this._code = code; return this; },
+						set: function() { return this; }
+					};
 				handlerFn.call(contributorPlugin, fakeReq, fakeRes);
 			});
 		});
