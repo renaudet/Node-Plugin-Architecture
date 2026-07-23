@@ -10,7 +10,8 @@
   "requires": [
     {"type": "plugin","id": "npa.core","version": "1.0.0"},
     {"type": "plugin","id": "npa.logging","version": "1.0.0"},
-    {"type": "plugin","id": "npa.http","version": "1.0.0"}
+    {"type": "plugin","id": "npa.http","version": "1.0.0"},
+    {"type": "plugin","id": "npa.telemetry","version": "1.0.0"}
   ],
   "extends": [
     {
@@ -38,6 +39,26 @@
       "method": "GET",
       "schema": "/health",
       "handler": "mcpHealthHandler"
+    },
+    {
+      "point": "npa.telemetry.dimension.provider",
+      "id": "npa.mcp.invocation.telemetry.provider",
+      "name": "mcp.invocation.count",
+      "displayLabel": "MCP Invocations",
+      "description": "Total number of MCP server invocations",
+      "type": "int",
+      "unit": "",
+      "maxPoints": 60
+    },
+    {
+      "point": "npa.telemetry.dimension.provider",
+      "id": "npa.mcp.concurrent.clients.telemetry.provider",
+      "name": "mcp.concurrent.clients",
+      "displayLabel": "MCP Peak Concurrent Clients",
+      "description": "Peak number of concurrent active MCP clients since last collection",
+      "type": "int",
+      "unit": "",
+      "maxPoints": 60
     }
   ],
   "provides": [

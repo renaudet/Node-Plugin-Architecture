@@ -14,7 +14,12 @@ const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/ser
 const { z } = require('zod');
 const fs = require('fs');
 const nodePath = require('path');
+const moment = require('moment');
 const MCP_EXTENSION_POINT_ID = 'npa.mcp.tool';
+const TELEMETRY_SERVICE_NAME = 'telemetry';
+const MCP_INVOCATION_DIMENSION = 'mcp.invocation.count';
+const MCP_CONCURRENT_CLIENTS_DIMENSION = 'mcp.concurrent.clients';
+const TELEMETRY_COLLECT_TIMEOUT = 30;
 
 const MIME_TYPES = {
 	'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
@@ -28,6 +33,26 @@ var plugin = new Plugin();
 
 // Registry of tool registrar functions contributed via npa.mcp.tool extension point
 plugin.toolRegistrars = [];
+
+// Telemetry counters
+plugin.invocationCount = 0;
+plugin.concurrentClients = 0;
+plugin.peakConcurrentClients = 0;
+
+plugin.onConfigurationLoaded = function(){
+	setTimeout(function(){ plugin.collectTelemetry(); },10*1000);
+}
+
+plugin.collectTelemetry = function(){
+	this.trace('->collectTelemetry()');
+	let telemetryService = this.getService(TELEMETRY_SERVICE_NAME);
+	let timestamp = moment().format('YYYY/MM/DD HH:mm:ss');
+	telemetryService.push(MCP_INVOCATION_DIMENSION,{"timestamp": timestamp,"count": this.invocationCount});
+	telemetryService.push(MCP_CONCURRENT_CLIENTS_DIMENSION,{"timestamp": timestamp,"count": this.peakConcurrentClients});
+	this.peakConcurrentClients = 0;
+	this.trace('<-collectTelemetry()');
+	setTimeout(function(){ plugin.collectTelemetry(); },TELEMETRY_COLLECT_TIMEOUT*1000);
+}
 
 /*
  * Build a Zod schema from a JSON Schema "properties" map.
@@ -198,6 +223,11 @@ plugin.lazzyPlug = function(extenderId, extensionConfig) {
 plugin.mcpRequestHandler = async function(req, res) {
 	plugin.debug('->mcpRequestHandler()');
 	plugin.debug('mcpRequestHandler() - headers: '+JSON.stringify(req.headers));
+	plugin.invocationCount++;
+	plugin.concurrentClients++;
+	if(plugin.concurrentClients > plugin.peakConcurrentClients){
+		plugin.peakConcurrentClients = plugin.concurrentClients;
+	}
 	const mcpName = plugin.getConfigValue('mcp.name');
 	const mcpVersion = plugin.getConfigValue('mcp.version');
 	const server = new McpServer({ name: mcpName, version: mcpVersion });
@@ -207,7 +237,10 @@ plugin.mcpRequestHandler = async function(req, res) {
 	}
 
 	const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-	res.on('close', () => transport.close());
+	res.on('close', () => {
+		plugin.concurrentClients--;
+		transport.close();
+	});
 
 	await server.connect(transport);
 	await transport.handleRequest(req, res, req.body);
