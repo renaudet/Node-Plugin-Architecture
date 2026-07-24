@@ -73,7 +73,7 @@ plugin.buildZodSchema = function(properties, required) {
 		} else if (def.type === 'array') {
 			field = z.array(z.any());
 		} else if (def.type === 'object') {
-			field = z.record(z.string(), z.any());
+			field = z.union([z.record(z.string(), z.any()), z.string()]);
 		} else {
 			field = z.string();
 		}
@@ -152,7 +152,24 @@ plugin.buildApiRegistrar = function(extenderId,extensionConfig) {
 				for (let [key, value] of Object.entries(args)) {
 					if (pathParamNames.has(key)) params[key] = value;
 					else if (queryParamNames.has(key)) query[key] = value;
-					else body[key] = value;
+					else {
+						// If a field declared as 'object' in apidoc arrives as a JSON string
+						// (possibly double-encoded by the MCP SDK), unwrap until we get an object
+						if (typeof value === 'string' && props[key] && props[key].type === 'object') {
+							let candidate = value.trim();
+							// The MCP SDK may append a spurious trailing character — try parsing,
+							// and if it fails strip one trailing char and retry (up to 3 times)
+							let parsed = null;
+							for (let trim = 0; trim <= 3; trim++) {
+								try {
+									parsed = JSON.parse(candidate.slice(0, candidate.length - trim || undefined));
+									break;
+								} catch(e) { /* try next */ }
+							}
+							if (typeof parsed === 'object' && parsed !== null) value = parsed;
+						}
+						body[key] = value;
+					}
 				}
 				if (Object.keys(body).length === 1 && typeof body.data === 'object' && body.data !== null) {
 					body = body.data;
