@@ -15,7 +15,9 @@ const args = require('yargs').argv;
 const Runtime = require('./core/integrationRuntime');
 
 const ENV_INSTALLATION = 'APAF_INSTALLATION';
+const ENV_INSTALLATION_FIXED = 'NPA_SITE_CONFIG';
 const ARGV_INSTALLATION = 'installation';
+const ARGV_INSTALLATION_FIXED = 'site_config';
 
 const ENV_APPLICATION = 'APPLICATION';
 const ARGV_APPLICATION = 'application';
@@ -47,14 +49,21 @@ var config = {
 	]
 };
 
-if(!process.env[ENV_INSTALLATION]){
+if(!process.env[ENV_INSTALLATION] && !process.env[ENV_INSTALLATION_FIXED]){
 	if(args[ARGV_INSTALLATION]){
 		config = require(args[ARGV_INSTALLATION]);
+	}else
+	if(args[ARGV_INSTALLATION_FIXED]){
+		config = require(args[ARGV_INSTALLATION_FIXED]);
 	}else{
 		config = require('./appConfig.json');
 	}
 }else{
-	config = require(process.env[ENV_INSTALLATION]);
+	if(process.env[ENV_INSTALLATION]){
+		config = require(process.env[ENV_INSTALLATION]);
+	}else{
+		config = require(process.env[ENV_INSTALLATION_FIXED]);
+	}
 }
  
 // get parameters from command-line to set environment variables
