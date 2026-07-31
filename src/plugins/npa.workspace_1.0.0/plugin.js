@@ -6,7 +6,8 @@
 const Plugin = require('../../core/plugin.js');
 const ENV_WORKSPACE_LOCATION = 'WORKSPACE_LOC';
 const PROJECT_CONF_FILE_NAME = '.project';
-const fs = require('fs'); 
+const EVENT_BROKER_SERVICE = 'broker';
+const fs = require('fs');
 
 var plugin = new Plugin();
 plugin.location = './';
@@ -15,6 +16,17 @@ plugin.beforeExtensionPlugged = function(){
 	if(typeof process.env[ENV_WORKSPACE_LOCATION]!='undefined'){
 		this.location = process.env[ENV_WORKSPACE_LOCATION];
 		this.debug('Workspace location is '+this.location);
+	}
+}
+
+plugin._emitWorkspaceEvent = function(eventName,data){
+	try{
+		let broker = this.getService(EVENT_BROKER_SERVICE);
+		if(broker){
+			broker.emit({"name": eventName,"source": "npa.workspace","data": data});
+		}
+	}catch(e){
+		// event broker may not be present — stay silent
 	}
 }
 
@@ -53,6 +65,7 @@ plugin.createProject = function(projectInfo){
 	fs.mkdirSync(this.location+'/'+projectInfo.name,{"recursive": true});
 	let confFileContent = JSON.stringify(projectInfo,null,'\t');
 	this.createLocalFile(PROJECT_CONF_FILE_NAME,projectInfo.name,confFileContent);
+	this._emitWorkspaceEvent('workspace.project.created',{"project": projectInfo});
 	this.trace('<-createProject()');
 }
 
@@ -62,6 +75,7 @@ plugin.createFolder = function(project,relativPath){
 	this.debug('relativePath: '+relativPath);
 	let absolutePath = this.location+'/'+project+'/'+relativPath;
 	fs.mkdirSync(absolutePath,{"recursive": true});
+	this._emitWorkspaceEvent('workspace.folder.created',{"project": project,"folder": relativPath});
 	this.trace('<-createFolder()');
 	return '/'+project+'/'+relativPath;
 }
@@ -82,6 +96,7 @@ plugin.createLocalFile = function(relativeFileName,project,content,options={}){
 		stream.write(content);
 	}
 	stream.end();
+	this._emitWorkspaceEvent('workspace.file.created',{"project": project,"path": project+'/'+relativeFileName,"content": content});
 	this.trace('<-createLocalFile()');
 }
 
@@ -125,6 +140,8 @@ plugin.setFileContent = function(workspaceRelativeFileName,content,options={}){
 		stream.write(content);
 	}
 	stream.end();
+	let projectName = workspaceRelativeFileName.split('/')[0];
+	this._emitWorkspaceEvent('workspace.file.updated',{"project": projectName,"path": workspaceRelativeFileName,"content": content});
 	this.trace('<-setFileContent()');
 }
 
