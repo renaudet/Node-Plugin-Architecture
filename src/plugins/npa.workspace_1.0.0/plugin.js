@@ -141,7 +141,9 @@ plugin.setFileContent = function(workspaceRelativeFileName,content,options={}){
 	}
 	stream.end();
 	let projectName = workspaceRelativeFileName.split('/')[0];
-	this._emitWorkspaceEvent('workspace.file.updated',{"project": projectName,"path": workspaceRelativeFileName,"content": content});
+	let eventData = {"project": projectName,"path": workspaceRelativeFileName,"content": content};
+	if(options.syncSource){ eventData.syncSource = options.syncSource; }
+	this._emitWorkspaceEvent('workspace.file.updated',eventData);
 	this.trace('<-setFileContent()');
 }
 
