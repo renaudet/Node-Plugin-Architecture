@@ -121,7 +121,7 @@ plugin.deleteResource = function(path){
 	}
 }
 
-plugin.setFileContent = function(workspaceRelativeFileName,content,options={}){
+plugin.setFileContent = function(workspaceRelativeFileName,content,options={},then){
 	this.trace('->setFileContent()');
 	this.debug('workspaceRelativeFileName: '+workspaceRelativeFileName);
 	let absolutePath = this.location+'/'+workspaceRelativeFileName;
@@ -134,18 +134,21 @@ plugin.setFileContent = function(workspaceRelativeFileName,content,options={}){
 		plugin.error('in npa.workspace.Plugin#setFileContent()');
 		plugin.error(JSON.stringify(err));
 	});
+	stream.on('finish', function(){
+		plugin.trace('<-setFileContent()');
+		if(!options.suppressEvent){
+			let projectName = workspaceRelativeFileName.split('/')[0];
+			let eventData = {"project": projectName,"path": workspaceRelativeFileName,"content": content};
+			plugin._emitWorkspaceEvent('workspace.file.updated',eventData);
+		}
+		if(then) then();
+	});
 	if(options && options.encoding){
 		stream.write(content,options.encoding);
 	}else{
 		stream.write(content);
 	}
 	stream.end();
-	if(!options.suppressEvent){
-		let projectName = workspaceRelativeFileName.split('/')[0];
-		let eventData = {"project": projectName,"path": workspaceRelativeFileName,"content": content};
-		this._emitWorkspaceEvent('workspace.file.updated',eventData);
-	}
-	this.trace('<-setFileContent()');
 }
 
 plugin.appendToFileContent = function(workspaceRelativeFileName,content,options={}){
