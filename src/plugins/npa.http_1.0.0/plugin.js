@@ -32,7 +32,7 @@ plugin.beforeExtensionPlugged = function(){
 		this.wsEndpoint = expressWs(this.endpoint);
 	}
 	this.endpoint.set('etag', false);
-	this.endpoint.use(bodyParser.json());
+	this.endpoint.use(bodyParser.json({ limit: '500kb' }));
 	this.endpoint.use(bodyParser.urlencoded({ extended: true, limit: '500kb' }));
 	if(this.config.http.corsEnabled){
 		var cors = require('cors');
