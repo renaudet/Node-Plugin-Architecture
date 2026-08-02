@@ -16,7 +16,8 @@ class PluginWrapper {
 		if(this.impl==null){
 			console.log('effectively loading Plugin '+this.getId());
 			//try{
-				let pathToModule = this.pluginConfig.path.replace(/\.\//,'../')+'/'+this.pluginConfig.manifest.plugin;
+				//let pathToModule = this.pluginConfig.path.replace(/\.\//,'../')+'/'+this.pluginConfig.manifest.plugin;
+				let pathToModule = this.pluginConfig.requirePath+'/'+this.pluginConfig.manifest.plugin;
 				this.impl = require(pathToModule);
 				this.impl.configure(this.pluginConfig.path,this.pluginConfig.manifest,this.runtime);
 				this.impl.beforeExtensionPlugged();

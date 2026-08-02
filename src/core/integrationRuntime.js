@@ -35,7 +35,15 @@ var PluginWrapper = require('./pluginWrapper');
 		console.log('plugin map initialized. '+this.plugins.length+' plugins were loaded');
 	}
 	loadPluginManifest(path){
-		var manifestFilename = path.replace(/\.\//,'../')+'/'+PLUGIN_MANIFEST_NAME;
+		let searchPath = path?path:'';
+		// notice: require() search files relative to the current file - adding a specific requirePath to fix relative path issues
+		if(searchPath.startsWith('./')){
+			searchPath = searchPath.replace(/\.\//,'../');
+		}else
+		if(searchPath.startsWith('../')){
+			searchPath = searchPath.replace(/\.\.\//,'../../');
+		}
+		var manifestFilename = searchPath+'/'+PLUGIN_MANIFEST_NAME;
 		try{
 			var manifest = require(manifestFilename);
 			if(typeof this.map[manifest.id]=='undefined'){
@@ -43,11 +51,15 @@ var PluginWrapper = require('./pluginWrapper');
 			}
 			var metadata = {};
 			metadata.path = path;
+			metadata.requirePath = searchPath;
 			metadata.manifest = manifest;
 			this.map[manifest.id].push(metadata);
 			console.log('- found plugin '+manifest.id);
 		}catch(fnf){
-			console.log('WARNING: no manifest file found at '+path);
+			console.log('WARNING: no manifest file found at '+manifestFilename);
+			console.log('path: '+path);
+			console.log('searchPath: '+searchPath);
+			console.log('plugin will be ignored!');
 		}
 	}
 	createPluginMap(){
