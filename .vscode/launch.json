@@ -21,7 +21,7 @@
                 "COUCH_DATABASE_PREFIX": "",
                 "WORKSPACE_LOC": "C:/tmp/NPA/workspace",
                 "SMTP_USER": "nicolas.renaudet",
-                "SMTP_PASSWD": "Orange4me!",
+                "SMTP_PASSWD": "",
                 "REGISTRY_HOST": "192.168.1.2",
                 "REGISTRY_PORT": "5010"
             }
