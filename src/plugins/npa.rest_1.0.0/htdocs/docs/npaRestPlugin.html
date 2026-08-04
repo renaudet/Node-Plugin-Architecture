@@ -1,0 +1,179 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - npa.rest plugin">
+		<meta name="Author" lang="fr" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>npa.rest - REST Client Plugin</title>
+	</head>
+	<body>
+
+		<h1>npa.rest &mdash; REST Client Plugin</h1>
+
+		<h2>Overview</h2>
+
+		The <b>npa.rest</b> plugin provides a server-side HTTP client for NPA plugins. It wraps the <i>axios</i> library
+		into a single, uniform API that handles GET, POST, PUT and DELETE calls, optional Basic authentication,
+		HTTPS with self-signed certificates, and telemetry collection.<br>
+		<br>
+		It is not a service in the NPA sense (it does not register under <code>npa.core.service</code>), but is accessed
+		directly through the NPA runtime as a plugin reference:
+
+		<div class="code">
+		let restPlugin = plugin.runtime.getPlugin(<span style="color:#3469e3;">'npa.rest'</span>);
+		</div>
+
+		<h2>The <code>restContext</code> Object</h2>
+
+		All methods accept a single <b>restContext</b> JSON object that fully describes the remote call.
+		The table below lists all recognised fields:
+
+		<br><br>
+		<table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;font-size:0.85rem;width:90%;margin-left:30px;">
+			<thead style="background-color:#293c4f;color:#fff;">
+				<tr>
+					<th>Field</th>
+					<th>Type</th>
+					<th>Required</th>
+					<th>Description</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr><td><code>host</code></td><td>string</td><td>yes</td><td>Target hostname or IP address</td></tr>
+				<tr><td><code>port</code></td><td>integer</td><td>no</td><td>TCP port — omit to use the default (80 / 443)</td></tr>
+				<tr><td><code>uri</code></td><td>string</td><td>yes</td><td>Request path, e.g. <code>/api/v1/resource</code></td></tr>
+				<tr><td><code>method</code></td><td>string</td><td>yes</td><td><code>GET</code>, <code>POST</code>, <code>PUT</code> or <code>DELETE</code></td></tr>
+				<tr><td><code>secured</code></td><td>boolean</td><td>yes</td><td><code>true</code> to use HTTPS, <code>false</code> for plain HTTP</td></tr>
+				<tr><td><code>acceptCertificate</code></td><td>boolean</td><td>no</td><td>When <code>true</code>, accepts self-signed / untrusted TLS certificates</td></tr>
+				<tr><td><code>username</code></td><td>string</td><td>no</td><td>Basic-auth username</td></tr>
+				<tr><td><code>password</code></td><td>string</td><td>no</td><td>Basic-auth password</td></tr>
+				<tr><td><code>payload</code></td><td>object</td><td>no</td><td>JSON body sent with POST and PUT requests</td></tr>
+				<tr><td><code>options</code></td><td>object</td><td>no</td><td>Raw axios options (e.g. custom <code>headers</code>)</td></tr>
+			</tbody>
+		</table>
+
+		<h2>Main Method</h2>
+
+		<h3><code>performRestApiCall(restContext, callback)</code></h3>
+
+		The single entry-point for all outbound HTTP calls. It inspects <code>restContext.method</code> and delegates
+		to the appropriate internal method.<br>
+		<br>
+		The <b>callback</b> follows the standard Node.js error-first convention:
+		<div class="code">
+		function(err, response)
+		</div>
+		<code>err</code> is <code>null</code> on success; <code>response</code> is the raw axios response object
+		(use <code>response.data</code> to access the parsed body).
+
+		<h2>Usage Example</h2>
+
+		<h3>Simple GET request</h3>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let restPlugin = plugin.runtime.getPlugin(<span style="color:#3469e3;">'npa.rest'</span>);<br>
+		&nbsp;2.&nbsp;<br>
+		&nbsp;3.&nbsp;let restContext = {<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"host"</span>: <span style="color:#3469e3;">"api.example.com"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"port"</span>: 443,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"uri"</span>: <span style="color:#3469e3;">"/v1/items"</span>,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"method"</span>: <span style="color:#3469e3;">"GET"</span>,<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"secured"</span>: true<br>
+		&nbsp;9.&nbsp;};<br>
+		10.&nbsp;<br>
+		11.&nbsp;restPlugin.performRestApiCall(restContext, function(err, response) {<br>
+		12.&nbsp;&nbsp;&nbsp;if(err) {<br>
+		13.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.error(<span style="color:#3469e3;">'REST call failed: '</span> + err);<br>
+		14.&nbsp;&nbsp;&nbsp;} else {<br>
+		15.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let items = response.data;<br>
+		16.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// process items...<br>
+		17.&nbsp;&nbsp;&nbsp;}<br>
+		18.&nbsp;});
+		</div>
+
+		<h3>Authenticated POST request</h3>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let restPlugin = plugin.runtime.getPlugin(<span style="color:#3469e3;">'npa.rest'</span>);<br>
+		&nbsp;2.&nbsp;<br>
+		&nbsp;3.&nbsp;let restContext = {<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"host"</span>: <span style="color:#3469e3;">"internal.myapp.local"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"port"</span>: 8080,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"uri"</span>: <span style="color:#3469e3;">"/api/process"</span>,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"method"</span>: <span style="color:#3469e3;">"POST"</span>,<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"secured"</span>: false,<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"username"</span>: <span style="color:#3469e3;">"admin"</span>,<br>
+		10.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"password"</span>: <span style="color:#3469e3;">"secret"</span>,<br>
+		11.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"payload"</span>: { <span style="color:#3469e3;">"input"</span>: <span style="color:#3469e3;">"value"</span> }<br>
+		12.&nbsp;};<br>
+		13.&nbsp;<br>
+		14.&nbsp;restPlugin.performRestApiCall(restContext, function(err, response) {<br>
+		15.&nbsp;&nbsp;&nbsp;if(err) {<br>
+		16.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;then(<span style="color:#3469e3;">'Remote call failed'</span>, null);<br>
+		17.&nbsp;&nbsp;&nbsp;} else {<br>
+		18.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;then(null, response.data);<br>
+		19.&nbsp;&nbsp;&nbsp;}<br>
+		20.&nbsp;});
+		</div>
+
+		<h3>HTTPS with self-signed certificate</h3>
+
+		Set <code>acceptCertificate: true</code> when the remote server uses a self-signed or internally-issued TLS
+		certificate that would otherwise be rejected:
+
+		<div class="code">
+		1.&nbsp;let restContext = {<br>
+		2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"host"</span>: <span style="color:#3469e3;">"192.168.1.50"</span>,<br>
+		3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"port"</span>: 9443,<br>
+		4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"uri"</span>: <span style="color:#3469e3;">"/status"</span>,<br>
+		5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"method"</span>: <span style="color:#3469e3;">"GET"</span>,<br>
+		6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"secured"</span>: true,<br>
+		7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"acceptCertificate"</span>: true<br>
+		8.&nbsp;};
+		</div>
+
+		<h2>Typical Usage in a Servlet</h2>
+
+		A common pattern is to call <code>npa.rest</code> from inside a server-side <i>servlet</i> fragment to
+		aggregate data from an external system before returning it to the browser:
+
+		<div class="code">
+		&nbsp;1.&nbsp;fetchExternalData = function(params, ctx, then) {<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;let restPlugin = ctx.runtime.getPlugin(<span style="color:#3469e3;">'npa.rest'</span>);<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;let restContext = {<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"host"</span>: <span style="color:#3469e3;">"data.provider.io"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"uri"</span>: <span style="color:#3469e3;">"/api/metrics"</span>,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"method"</span>: <span style="color:#3469e3;">"GET"</span>,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"secured"</span>: true<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;};<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;restPlugin.performRestApiCall(restContext, function(err, response) {<br>
+		10.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(err) {<br>
+		11.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;then(<span style="color:#3469e3;">'Failed to fetch metrics'</span>, null);<br>
+		12.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br>
+		13.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;then(null, response.data);<br>
+		14.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		15.&nbsp;&nbsp;&nbsp;});<br>
+		16.&nbsp;}<br>
+		17.&nbsp;<br>
+		18.&nbsp;servlet.endpoint = fetchExternalData;
+		</div>
+
+		<h2>Notes</h2>
+
+		<ul>
+			<li>The <code>npa.rest</code> plugin automatically tracks the total number of outbound calls
+			    and pushes a telemetry counter every 30 seconds to the <code>rest.calls</code> dimension.</li>
+			<li>The <code>response</code> object passed to the callback is the raw <i>axios</i> response.
+			    The parsed body is always available at <code>response.data</code>.</li>
+			<li>Errors from the HTTP layer (4xx, 5xx, network failures) are caught and forwarded
+			    as the first argument of the callback — they never throw.</li>
+		</ul>
+
+	</body>
+</html>

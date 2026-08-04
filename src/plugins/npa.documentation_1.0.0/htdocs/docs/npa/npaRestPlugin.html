@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - npa.rest plugin">
+		<meta name="Author" lang="fr" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>npa.rest - REST Client Plugin</title>
+	</head>
+	<body>
+
+		<h1>npa.rest &mdash; REST Client Plugin</h1>
+
+		<h2>Overview</h2>
+
+		The <b>npa.rest</b> plugin provides a unified HTTP/HTTPS client for making outbound REST API calls
+		from server-side plugin code. It wraps the <b>axios</b> library, handles self-signed certificates,
+		optional Basic-Auth credentials, and custom headers, and exposes a single entry point:
+
+		<div class="code">
+		let rest = plugin.getService(<span style="color:#3469e3;">'rest'</span>);
+		</div>
+
+		REST call counts are pushed to the <code>rest.calls</code> telemetry dimension every 30 seconds.
+
+		<h2>Service Name</h2>
+
+		<div class="code">
+		<span style="color:#3469e3;">'rest'</span>
+		</div>
+
+		<h2>The restContext Object</h2>
+
+		All API methods accept a single <b>restContext</b> descriptor:
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"host"</span>: <span style="color:#3469e3;">"api.example.com"</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#888;">// required</span><br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"port"</span>: 443,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#888;">// optional, omit for default 80/443</span><br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"uri"</span>: <span style="color:#3469e3;">"/api/v1/resource"</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#888;">// required</span><br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"secured"</span>: true,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#888;">// use HTTPS when true</span><br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"acceptCertificate"</span>: true,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#888;">// accept self-signed certs</span><br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"method"</span>: <span style="color:#3469e3;">"GET"</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#888;">// GET | POST | PUT | DELETE</span><br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"username"</span>: <span style="color:#3469e3;">"user"</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#888;">// optional Basic-Auth</span><br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"password"</span>: <span style="color:#3469e3;">"secret"</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#888;">// optional Basic-Auth</span><br>
+		10.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"payload"</span>: { ... },&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#888;">// optional body for POST/PUT</span><br>
+		11.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"options"</span>: {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#888;">// optional axios options</span><br>
+		12.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"headers"</span>: { <span style="color:#3469e3;">"Content-Type"</span>: <span style="color:#3469e3;">"application/json"</span> }<br>
+		13.&nbsp;&nbsp;&nbsp;}<br>
+		14.&nbsp;}
+		</div>
+
+		<h2>Method</h2>
+
+		<h3><code>performRestApiCall(restContext, callback)</code></h3>
+
+		Dispatches the call to GET, POST, PUT or DELETE based on <code>restContext.method</code>.
+		The callback follows the Node.js error-first convention:<br>
+		<code>function(err, response)</code> where <code>response</code> is the raw axios response object
+		(access the body via <code>response.data</code>).
+
+		<h2>Usage Examples</h2>
+
+		<h3>GET request</h3>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let rest = plugin.getService(<span style="color:#3469e3;">'rest'</span>);<br>
+		&nbsp;2.&nbsp;let ctx = {<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"host"</span>: <span style="color:#3469e3;">"api.example.com"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"uri"</span>: <span style="color:#3469e3;">"/data/items"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"secured"</span>: false,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"method"</span>: <span style="color:#3469e3;">"GET"</span><br>
+		&nbsp;7.&nbsp;};<br>
+		&nbsp;8.&nbsp;<br>
+		&nbsp;9.&nbsp;rest.performRestApiCall(ctx, function(err, response) {<br>
+		10.&nbsp;&nbsp;&nbsp;if(err) {<br>
+		11.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.error(<span style="color:#3469e3;">'Call failed: '</span> + err);<br>
+		12.&nbsp;&nbsp;&nbsp;} else {<br>
+		13.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let items = response.data;<br>
+		14.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.info(<span style="color:#3469e3;">'Received '</span> + items.length + <span style="color:#3469e3;">' items'</span>);<br>
+		15.&nbsp;&nbsp;&nbsp;}<br>
+		16.&nbsp;});
+		</div>
+
+		<h3>POST request with JSON payload</h3>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let rest = plugin.getService(<span style="color:#3469e3;">'rest'</span>);<br>
+		&nbsp;2.&nbsp;let ctx = {<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"host"</span>: <span style="color:#3469e3;">"api.example.com"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"uri"</span>: <span style="color:#3469e3;">"/data/items"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"secured"</span>: true,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"acceptCertificate"</span>: true,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"method"</span>: <span style="color:#3469e3;">"POST"</span>,<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"payload"</span>: { <span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"newItem"</span>, <span style="color:#3469e3;">"value"</span>: 42 }<br>
+		&nbsp;9.&nbsp;};<br>
+		10.&nbsp;<br>
+		11.&nbsp;rest.performRestApiCall(ctx, function(err, response) {<br>
+		12.&nbsp;&nbsp;&nbsp;if(err) {<br>
+		13.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.error(<span style="color:#3469e3;">'POST failed: '</span> + err);<br>
+		14.&nbsp;&nbsp;&nbsp;} else {<br>
+		15.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.info(<span style="color:#3469e3;">'Created: '</span> + JSON.stringify(response.data));<br>
+		16.&nbsp;&nbsp;&nbsp;}<br>
+		17.&nbsp;});
+		</div>
+
+		<h3>HTTPS with Basic Authentication</h3>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let rest = plugin.getService(<span style="color:#3469e3;">'rest'</span>);<br>
+		&nbsp;2.&nbsp;let ctx = {<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"host"</span>: <span style="color:#3469e3;">"secure.example.com"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"port"</span>: 8443,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"uri"</span>: <span style="color:#3469e3;">"/protected/resource"</span>,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"secured"</span>: true,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"acceptCertificate"</span>: true,<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"method"</span>: <span style="color:#3469e3;">"GET"</span>,<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"username"</span>: <span style="color:#3469e3;">"admin"</span>,<br>
+		10.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"password"</span>: <span style="color:#3469e3;">"s3cr3t"</span><br>
+		11.&nbsp;};<br>
+		12.&nbsp;<br>
+		13.&nbsp;rest.performRestApiCall(ctx, function(err, response) {<br>
+		14.&nbsp;&nbsp;&nbsp;if(!err) plugin.info(JSON.stringify(response.data));<br>
+		15.&nbsp;});
+		</div>
+
+		<h2>Notes</h2>
+		<ul>
+			<li>The response body is always at <code>response.data</code> (axios convention).</li>
+			<li>When <code>acceptCertificate: true</code>, the HTTPS agent is configured with
+			    <code>rejectUnauthorized: false</code> — use only with trusted internal endpoints.</li>
+			<li>REST call counts are reported to the <code>rest.calls</code> telemetry dimension every 30 seconds.</li>
+			<li>Custom headers (e.g. <code>Authorization: Bearer ...</code>) can be passed via <code>options.headers</code>.</li>
+		</ul>
+
+	</body>
+</html>

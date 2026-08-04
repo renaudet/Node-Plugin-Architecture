@@ -1,6 +1,6 @@
 {
   "id": "npa.crypto",
-  "name": "REST client provider",
+  "name": "Cryptography service provider for NPA",
   "version": "1.0.0",
   "plugin": "plugin.js",
   "requires": [

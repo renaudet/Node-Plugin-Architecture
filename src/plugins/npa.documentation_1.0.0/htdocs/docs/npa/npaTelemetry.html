@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - npa.telemetry plugin">
+		<meta name="Author" lang="fr" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>npa.telemetry - Telemetry Plugin</title>
+	</head>
+	<body>
+
+		<h1>npa.telemetry &mdash; Telemetry Plugin</h1>
+
+		<h2>Overview</h2>
+
+		The <b>npa.telemetry</b> plugin provides an in-memory time-series store for runtime metrics.
+		Each metric is called a <i>dimension</i> and holds a rolling window of data points.
+		Dimensions are declared by any plugin via the <code>npa.telemetry.dimension.provider</code>
+		extension point. The service is available as <b><code>telemetry</code></b>:
+
+		<div class="code">
+		let telemetry = plugin.getService(<span style="color:#3469e3;">'telemetry'</span>);
+		</div>
+
+		The plugin automatically collects and stores the JVM heap usage (<code>used.heap</code>) every 30 seconds.
+
+		<h2>Service Name</h2>
+
+		<div class="code">
+		<span style="color:#3469e3;">'telemetry'</span>
+		</div>
+
+		<h2>Methods</h2>
+
+		<h3><code>push(dimensionName, telemetryData)</code></h3>
+
+		Stores a new data point for the named dimension. <code>telemetryData</code> is a plain object —
+		by convention it carries a <code>timestamp</code> (formatted string) and a <code>count</code> value,
+		but any shape is accepted. The window is capped at the dimension's <code>maxPoints</code> value;
+		older entries are dropped automatically.
+
+		<h3><code>getDataPoints(dimensionName)</code></h3>
+
+		Returns the full dimension descriptor including the current <code>data</code> array,
+		or <code>null</code> if the dimension does not exist.
+
+		<h3><code>getDimensionList()</code></h3>
+
+		Returns an array of lightweight dimension descriptors (name, label, description, type, unit)
+		without the data payload — useful for discovery.
+
+		<h2>Declaring a Dimension</h2>
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"point"</span>: <span style="color:#3469e3;">"npa.telemetry.dimension.provider"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"my.plugin.metric"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"my.metric"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"displayLabel"</span>: <span style="color:#3469e3;">"My Metric"</span>,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"description"</span>: <span style="color:#3469e3;">"Count of something per interval"</span>,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"int"</span>,<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"unit"</span>: <span style="color:#3469e3;">""</span>,<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"maxPoints"</span>: 60<br>
+		10.&nbsp;}
+		</div>
+
+		<h2>Usage Example</h2>
+
+		<div class="code">
+		&nbsp;1.&nbsp;const TELEMETRY_SERVICE = <span style="color:#3469e3;">'telemetry'</span>;<br>
+		&nbsp;2.&nbsp;const MY_DIMENSION = <span style="color:#3469e3;">'my.metric'</span>;<br>
+		&nbsp;3.&nbsp;<br>
+		&nbsp;4.&nbsp;// push a data point every 30 seconds<br>
+		&nbsp;5.&nbsp;collectMetrics = function() {<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;let telemetry = plugin.getService(TELEMETRY_SERVICE);<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;telemetry.push(MY_DIMENSION, {<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"timestamp"</span>: moment().format(<span style="color:#3469e3;">'YYYY/MM/DD HH:mm:ss'</span>),<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"count"</span>: myCounter<br>
+		10.&nbsp;&nbsp;&nbsp;});<br>
+		11.&nbsp;&nbsp;&nbsp;myCounter = 0;<br>
+		12.&nbsp;&nbsp;&nbsp;setTimeout(collectMetrics, 30000);<br>
+		13.&nbsp;}
+		</div>
+
+		<h2>Notes</h2>
+		<ul>
+			<li>Data points are stored <b>in memory only</b> — they are lost on server restart.</li>
+			<li>The <code>maxPoints</code> cap implements a circular buffer: when full, the oldest
+			    entry is evicted to make room for the newest.</li>
+			<li>Several built-in NPA plugins push telemetry automatically: <code>npa.rest</code>
+			    (<code>rest.calls</code>), <code>npa.couchdb.adapter</code>
+			    (<code>database.transaction</code>), <code>npa.http</code> (<code>http.session</code>).</li>
+		</ul>
+
+	</body>
+</html>

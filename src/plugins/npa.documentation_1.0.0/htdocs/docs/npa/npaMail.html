@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - npa.mail plugin">
+		<meta name="Author" lang="fr" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>npa.mail - Mail Plugin</title>
+	</head>
+	<body>
+
+		<h1>npa.mail &mdash; Mail Plugin</h1>
+
+		<h2>Overview</h2>
+
+		The <b>npa.mail</b> plugin sends emails via SMTP using <i>nodemailer</i>.
+		It supports multiple named mail providers contributed through the
+		<code>npa.mail.provider</code> extension point. The service is available as
+		<b><code>mail</code></b>:
+
+		<div class="code">
+		let mailService = plugin.getService(<span style="color:#3469e3;">'mail'</span>);
+		</div>
+
+		<h2>Service Name</h2>
+
+		<div class="code">
+		<span style="color:#3469e3;">'mail'</span>
+		</div>
+
+		<h2>Methods</h2>
+
+		<h3><code>sendMail(providerId, from, to, subject, content, isHtml, callback)</code></h3>
+
+		Sends an email through the named SMTP provider.<br><br>
+
+		<table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;font-size:0.85rem;width:90%;margin-left:30px;">
+			<thead style="background-color:#293c4f;color:#fff;">
+				<tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+			</thead>
+			<tbody>
+				<tr><td><code>providerId</code></td><td>string</td><td>ID of the configured mail provider</td></tr>
+				<tr><td><code>from</code></td><td>string</td><td>Sender address (e.g. <code>"noreply@myapp.com"</code>)</td></tr>
+				<tr><td><code>to</code></td><td>string</td><td>Recipient address or comma-separated list</td></tr>
+				<tr><td><code>subject</code></td><td>string</td><td>Email subject line</td></tr>
+				<tr><td><code>content</code></td><td>string</td><td>Email body (plain text or HTML)</td></tr>
+				<tr><td><code>isHtml</code></td><td>boolean</td><td><code>true</code> to send as HTML, <code>false</code> for plain text</td></tr>
+				<tr><td><code>callback</code></td><td>function(err, response)</td><td>Called on completion</td></tr>
+			</tbody>
+		</table>
+
+		<h2>Declaring a Mail Provider</h2>
+
+		Mail providers are declared in the contributing plugin's <code>manifest.json</code> using the
+		<code>npa.mail.provider</code> extension point:
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"point"</span>: <span style="color:#3469e3;">"npa.mail.provider"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"my.plugin.mail.provider"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"smtp"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"host"</span>: <span style="color:#3469e3;">"smtp.myapp.com"</span>,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"port"</span>: 587,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"secure"</span>: false,<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"username"</span>: <span style="color:#3469e3;">"$SMTP_USER"</span>,<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"password"</span>: <span style="color:#3469e3;">"$SMTP_PASSWORD"</span><br>
+		10.&nbsp;}
+		</div>
+
+		Field values starting with <code>$</code> are resolved from environment variables at startup.
+		The <code>type</code> field is used as the provider key when calling <code>sendMail()</code>.
+
+		<h2>Usage Example</h2>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let mailService = plugin.getService(<span style="color:#3469e3;">'mail'</span>);<br>
+		&nbsp;2.&nbsp;<br>
+		&nbsp;3.&nbsp;let body = <span style="color:#3469e3;">'&lt;h2&gt;Hello!&lt;/h2&gt;&lt;p&gt;Your report is ready.&lt;/p&gt;'</span>;<br>
+		&nbsp;4.&nbsp;<br>
+		&nbsp;5.&nbsp;mailService.sendMail(<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">'smtp'</span>,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">'noreply@myapp.com'</span>,<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">'user@example.com'</span>,<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">'Your report is ready'</span>,<br>
+		10.&nbsp;&nbsp;&nbsp;body,<br>
+		11.&nbsp;&nbsp;&nbsp;true,<br>
+		12.&nbsp;&nbsp;&nbsp;function(err, response) {<br>
+		13.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(err) {<br>
+		14.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.error(<span style="color:#3469e3;">'Mail failed: '</span> + JSON.stringify(err));<br>
+		15.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br>
+		16.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.info(<span style="color:#3469e3;">'Mail sent successfully'</span>);<br>
+		17.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		18.&nbsp;&nbsp;&nbsp;}<br>
+		19.&nbsp;);
+		</div>
+
+		<h2>Notes</h2>
+		<ul>
+			<li>When no <code>username</code> is configured, the SMTP transport is created without
+			    authentication and with TLS certificate verification disabled — suitable for
+			    internal/relay SMTP servers.</li>
+			<li>The SMTP transport is created and closed for each call to <code>sendMail()</code>.</li>
+		</ul>
+
+	</body>
+</html>

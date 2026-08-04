@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - npa.workspace plugin">
+		<meta name="Author" lang="fr" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>npa.workspace - Filesystem Plugin</title>
+	</head>
+	<body>
+
+		<h1>npa.workspace &mdash; Filesystem Plugin</h1>
+
+		<h2>Overview</h2>
+
+		The <b>npa.workspace</b> plugin provides a managed filesystem area — the <i>workspace</i> —
+		where plugins and applications can create projects, folders and files.
+		The workspace root is configured through the <code>WORKSPACE_LOC</code> environment variable
+		(defaults to <code>./</code>). The service is available as <b><code>workspace</code></b>:
+
+		<div class="code">
+		let workspace = plugin.getService(<span style="color:#3469e3;">'workspace'</span>);
+		</div>
+
+		File and project operations emit events on the <code>broker</code> service:
+		<code>workspace.project.created</code>, <code>workspace.folder.created</code>,
+		<code>workspace.file.created</code>, <code>workspace.file.updated</code>.
+
+		<h2>Service Name</h2>
+
+		<div class="code">
+		<span style="color:#3469e3;">'workspace'</span>
+		</div>
+
+		<h2>Methods</h2>
+
+		<h3><code>getProjects(filter?)</code></h3>
+
+		Returns all projects in the workspace as an array of project descriptor objects.
+		An optional <code>filter</code> object can narrow results by <code>name</code> or <code>type</code>.
+
+		<h3><code>getProject(name)</code></h3>
+
+		Returns the project descriptor for the named project, or <code>null</code> if it does not exist.
+
+		<h3><code>createProject(projectInfo)</code></h3>
+
+		Creates a new project folder and writes its <code>.project</code> descriptor file.
+		<code>projectInfo</code> must contain at least <code>name</code> and <code>type</code>.
+
+		<h3><code>deleteProject(name, user)</code></h3>
+
+		Deletes a project and all its contents. Only the project owner or an admin can delete a project.
+		Throws if the caller is not authorised.
+
+		<h3><code>createFolder(project, relativePath)</code></h3>
+
+		Creates a folder (and any missing parent folders) inside a project.
+		Returns the workspace-relative path of the new folder.
+
+		<h3><code>createLocalFile(relativeFileName, project, content, options?)</code></h3>
+
+		Creates a file inside a project with the given text content.
+
+		<h3><code>setFileContent(workspaceRelativePath, content, options?, callback?)</code></h3>
+
+		Writes (or overwrites) the content of an existing file. Options:
+		<code>recursive</code> (create missing parent folders), <code>encoding</code>,
+		<code>suppressEvent</code> (skip broker notification). An optional <code>callback</code>
+		is called after the write stream closes.
+
+		<h3><code>appendToFileContent(workspaceRelativePath, content, options?)</code></h3>
+
+		Appends text content to an existing file.
+
+		<h3><code>folderContent(relativePath, showHiddenFiles?)</code></h3>
+
+		Returns the contents of a folder as an array of entries with <code>name</code>, <code>type</code>
+		(<code>"file"</code> or <code>"directory"</code>), <code>size</code>, <code>lastModified</code>
+		and <code>created</code>.
+
+		<h3><code>deleteResource(path)</code></h3>
+
+		Deletes a file or directory (recursively) at the given workspace-relative path.
+
+		<h2>Usage Example</h2>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let workspace = plugin.getService(<span style="color:#3469e3;">'workspace'</span>);<br>
+		&nbsp;2.&nbsp;<br>
+		&nbsp;3.&nbsp;// create a project<br>
+		&nbsp;4.&nbsp;workspace.createProject({ <span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"myProject"</span>, <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"general"</span> });<br>
+		&nbsp;5.&nbsp;<br>
+		&nbsp;6.&nbsp;// create a subfolder<br>
+		&nbsp;7.&nbsp;workspace.createFolder(<span style="color:#3469e3;">"myProject"</span>, <span style="color:#3469e3;">"src/utils"</span>);<br>
+		&nbsp;8.&nbsp;<br>
+		&nbsp;9.&nbsp;// write a file<br>
+		10.&nbsp;workspace.createLocalFile(<span style="color:#3469e3;">"src/utils/helper.js"</span>, <span style="color:#3469e3;">"myProject"</span>, <span style="color:#3469e3;">"// helper code"</span>);<br>
+		11.&nbsp;<br>
+		12.&nbsp;// overwrite its content later<br>
+		13.&nbsp;workspace.setFileContent(<span style="color:#3469e3;">"myProject/src/utils/helper.js"</span>, <span style="color:#3469e3;">"// updated code"</span>, {}, function() {<br>
+		14.&nbsp;&nbsp;&nbsp;plugin.info(<span style="color:#3469e3;">'File saved'</span>);<br>
+		15.&nbsp;});<br>
+		16.&nbsp;<br>
+		17.&nbsp;// list a folder<br>
+		18.&nbsp;let entries = workspace.folderContent(<span style="color:#3469e3;">"myProject/src"</span>);<br>
+		19.&nbsp;entries.forEach(function(e) { plugin.info(e.name + <span style="color:#3469e3;">' ['</span> + e.type + <span style="color:#3469e3;">']'</span>); });
+		</div>
+
+		<h2>Notes</h2>
+		<ul>
+			<li>All paths passed to the API are <b>workspace-relative</b> — never absolute paths.</li>
+			<li><code>folderContent()</code> uses <code>fs.readdirSync()</code> and is synchronous.</li>
+			<li>Hidden files (names starting with <code>.</code>) are excluded by default;
+			    pass <code>showHiddenFiles = true</code> to include them.</li>
+			<li>Workspace events are only emitted when the <code>broker</code> service is available.</li>
+		</ul>
+
+	</body>
+</html>

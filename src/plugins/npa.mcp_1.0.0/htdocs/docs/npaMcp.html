@@ -1,0 +1,177 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - npa.mcp plugin">
+		<meta name="Author" lang="fr" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>npa.mcp - MCP Server Plugin</title>
+	</head>
+	<body>
+
+		<h1>npa.mcp &mdash; MCP Server Plugin</h1>
+
+		<h2>Overview</h2>
+
+		The <b>npa.mcp</b> plugin exposes a <b>Model Context Protocol (MCP)</b> server over HTTP using
+		the Streamable HTTP transport. It listens on the same port as the NPA HTTP server (via <code>npa.http</code>)
+		and registers all contributed tools at request time, making them available to any MCP-compatible
+		AI client (VS Code, Claude, etc.).<br>
+		<br>
+		Two endpoints are registered under <code>/mcp</code>:
+		<ul>
+			<li><code>POST /mcp/</code> — main MCP request handler (Streamable HTTP transport)</li>
+			<li><code>GET /mcp/health</code> — health check, returns <code>{ "status": "ok", "server": "&lt;name&gt;" }</code></li>
+		</ul>
+
+		The server name is configured via the <code>MCP_SERVER_NAME</code> environment variable
+		(defaults to <code>npa-mcp-server</code>).
+
+		<h2>Extension Point: <code>npa.mcp.tool</code></h2>
+
+		Any plugin can contribute MCP tools by extending the <code>npa.mcp.tool</code> extension point
+		in its <code>manifest.json</code>. Two contribution styles are supported.
+
+		<h3>Style 1 — API-descriptor (recommended)</h3>
+
+		This style wires an existing <code>npa.http.handler</code> extension directly as an MCP tool,
+		using its embedded <code>apidoc</code> OpenAPI descriptor. No extra code is needed in <code>plugin.js</code>.
+
+		<b>Step 1</b> — add an <code>apidoc</code> field to the <code>npa.http.handler</code> extension:
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"point"</span>: <span style="color:#3469e3;">"npa.http.handler"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"my.plugin.myAction.handler"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"router"</span>: <span style="color:#3469e3;">"my.plugin.router"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"method"</span>: <span style="color:#3469e3;">"POST"</span>,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"schema"</span>: <span style="color:#3469e3;">"/myAction"</span>,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"handler"</span>: <span style="color:#3469e3;">"myActionHandler"</span>,<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"apidoc"</span>: {<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"paths"</span>: {<br>
+		10.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"/myAction"</span>: {<br>
+		11.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"post"</span>: {<br>
+		12.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"operationId"</span>: <span style="color:#3469e3;">"myToolName"</span>,<br>
+		13.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"description"</span>: <span style="color:#3469e3;">"What this tool does"</span>,<br>
+		14.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"requestBody"</span>: {<br>
+		15.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"content"</span>: {<br>
+		16.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"application/json"</span>: {<br>
+		17.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"schema"</span>: {<br>
+		18.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"object"</span>,<br>
+		19.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"required"</span>: [ <span style="color:#3469e3;">"name"</span> ],<br>
+		20.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"properties"</span>: {<br>
+		21.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"name"</span>: { <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"string"</span>, <span style="color:#3469e3;">"description"</span>: <span style="color:#3469e3;">"Name of the item"</span> },<br>
+		22.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"active"</span>: { <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"boolean"</span>, <span style="color:#3469e3;">"description"</span>: <span style="color:#3469e3;">"Filter by active status"</span> }<br>
+		23.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		24.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		25.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		26.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		27.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		28.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		29.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		30.&nbsp;&nbsp;&nbsp;}<br>
+		31.&nbsp;}
+		</div>
+
+		<b>Step 2</b> — add the <code>npa.mcp.tool</code> extension referencing that handler by its <code>id</code>:
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"point"</span>: <span style="color:#3469e3;">"npa.mcp.tool"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"my.plugin.myAction.mcp.tool"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"apiId"</span>: <span style="color:#3469e3;">"my.plugin.myAction.handler"</span><br>
+		&nbsp;5.&nbsp;}
+		</div>
+
+		At startup, <code>npa.mcp</code> resolves the handler extension by its <code>apiId</code>, extracts the
+		<code>apidoc</code> descriptor, builds the Zod input schema, and registers a tool named after
+		<code>operationId</code>. When the tool is invoked by an AI client, the original handler function
+		on the contributing plugin is called directly — no extra HTTP round-trip.
+
+		<h3>Style 2 — Registrar function (advanced)</h3>
+
+		For tools that need full control over the MCP <code>server.tool()</code> call (e.g. streaming,
+		dynamic schema), a <b>registrar function</b> can be declared directly in <code>plugin.js</code>:
+
+		<div class="code">
+		&nbsp;1.&nbsp;<span style="color:#888;">// manifest.json</span><br>
+		&nbsp;2.&nbsp;{<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"point"</span>: <span style="color:#3469e3;">"npa.mcp.tool"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"my.plugin.custom.mcp.tool"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"registrar"</span>: <span style="color:#3469e3;">"registerMyTools"</span><br>
+		&nbsp;6.&nbsp;}
+		</div>
+
+		<div class="code">
+		&nbsp;1.&nbsp;<span style="color:#888;">// plugin.js</span><br>
+		&nbsp;2.&nbsp;plugin.registerMyTools = function(server, httpReq) {<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;server.tool(<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">'myCustomTool'</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">'Does something custom'</span>,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ input: z.string().describe(<span style="color:#3469e3;">'The input value'</span>) },<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;async (args) =&gt; {<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return { content: [{ type: <span style="color:#3469e3;">'text'</span>, text: <span style="color:#3469e3;">'result: '</span> + args.input }] };<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		10.&nbsp;&nbsp;&nbsp;);<br>
+		11.&nbsp;};
+		</div>
+
+		The registrar function receives the <code>McpServer</code> instance and the original HTTP request
+		object (with headers) — useful to forward authentication tokens to downstream calls.
+
+		<h2>Supported <code>apidoc</code> Parameter Types</h2>
+
+		The <code>apidoc</code> field follows the OpenAPI 3.x structure. The following JSON Schema types
+		are mapped to Zod:
+
+		<table>
+			<tr><th>JSON Schema type</th><th>Zod type</th></tr>
+			<tr><td><code>string</code></td><td><code>z.string()</code></td></tr>
+			<tr><td><code>boolean</code></td><td><code>z.boolean()</code></td></tr>
+			<tr><td><code>integer</code> / <code>number</code></td><td><code>z.number()</code></td></tr>
+			<tr><td><code>array</code></td><td><code>z.array(z.any())</code></td></tr>
+			<tr><td><code>object</code></td><td><code>z.union([z.record(...), z.string()])</code></td></tr>
+			<tr><td><code>enum</code> values array</td><td><code>z.enum([...])</code></td></tr>
+		</table>
+
+		Fields listed in <code>required</code> are mandatory; all others are <code>.optional()</code>.
+		Fields with a <code>description</code> property have it forwarded to the Zod schema via <code>.describe()</code>,
+		which improves tool discoverability for AI clients.
+
+		<h2>Parameter Routing</h2>
+
+		When using the API-descriptor style, arguments passed by the AI client are automatically routed
+		to the handler's <code>req</code> object based on their declaration in the <code>apidoc</code>:
+
+		<ul>
+			<li>Parameters with <code>"in": "path"</code> → <code>req.params</code></li>
+			<li>Parameters with <code>"in": "query"</code> → <code>req.query</code></li>
+			<li>All <code>requestBody</code> fields → <code>req.body</code></li>
+		</ul>
+
+		Special case: if the entire body consists of a single field named <code>data</code> of type
+		<code>object</code>, it is unwrapped and spread directly into <code>req.body</code> — to support
+		handlers that accept a dynamic payload.
+
+		<h2>Telemetry</h2>
+
+		Two telemetry dimensions are pushed every 30 seconds:
+		<ul>
+			<li><code>mcp.invocation.count</code> — cumulative total number of MCP requests received</li>
+			<li><code>mcp.concurrent.clients</code> — peak number of concurrent active clients since last collection</li>
+		</ul>
+
+		<h2>Configuration</h2>
+
+		<table>
+			<tr><th>Environment variable</th><th>Default</th><th>Description</th></tr>
+			<tr><td><code>MCP_SERVER_NAME</code></td><td><code>npa-mcp-server</code></td><td>Name reported by the MCP server in its capabilities handshake</td></tr>
+		</table>
+
+	</body>
+</html>

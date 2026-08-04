@@ -1,0 +1,269 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - NPA Programming Model">
+		<meta name="Author" lang="fr" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>NPA - Programming Model</title>
+	</head>
+	<body>
+
+		<h1>NPA &mdash; Programming Model</h1>
+
+		<h2>Overview</h2>
+
+		<b>NPA (Node Plugin Architecture)</b> is a lightweight plugin framework for Node.js. It provides
+		a structured way to decompose a server application into independently declared, versioned,
+		and dependency-managed <b>plugins</b> that are discovered and wired together at startup by
+		a central <b>Integration Runtime</b>.<br>
+		<br>
+		The three fundamental concepts are:
+		<ul>
+			<li><b>Plugins</b> — self-contained units of code described by a <code>manifest.json</code></li>
+			<li><b>Extension Points</b> — named hooks that plugins provide for others to extend</li>
+			<li><b>Sites</b> — filesystem directories scanned by the runtime to discover plugins</li>
+		</ul>
+
+		<h2>The Plugin</h2>
+
+		Every NPA plugin lives in its own directory and consists of two files:
+
+		<ul>
+			<li><code>manifest.json</code> — declarative metadata: id, version, dependencies, extensions</li>
+			<li><code>plugin.js</code> — the implementation, a singleton module exporting a <code>Plugin</code> instance</li>
+		</ul>
+
+		A minimal plugin looks like this:
+
+		<div class="code">
+		&nbsp;1.&nbsp;<span style="color:#888;">// my.plugin_1.0.0/plugin.js</span><br>
+		&nbsp;2.&nbsp;const Plugin = require(<span style="color:#3469e3;">'../../core/plugin.js'</span>);<br>
+		&nbsp;3.&nbsp;var plugin = new Plugin();<br>
+		&nbsp;4.&nbsp;<br>
+		&nbsp;5.&nbsp;plugin.onConfigurationLoaded = function() {<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#888;">// called once the plugin is fully wired and ready</span><br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;this.info(<span style="color:#3469e3;">'My plugin is running!'</span>);<br>
+		&nbsp;8.&nbsp;};<br>
+		&nbsp;9.&nbsp;<br>
+		10.&nbsp;module.exports = plugin;
+		</div>
+
+		Plugins are <b>singletons</b> — the same module instance is reused for the lifetime of the process.
+		The base <code>Plugin</code> class provides logging, service access, configuration reading, and
+		state management.
+
+		<h2>The manifest.json</h2>
+
+		The manifest is the contract of a plugin. It declares everything the runtime needs to load,
+		sort, and wire plugins correctly.
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"my.plugin"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"My Plugin"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"version"</span>: <span style="color:#3469e3;">"1.0.0"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"plugin"</span>: <span style="color:#3469e3;">"plugin.js"</span>,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"requires"</span>: [<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"plugin"</span>, <span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"npa.core"</span>, <span style="color:#3469e3;">"version"</span>: <span style="color:#3469e3;">"1.0.0"</span> },<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"plugin"</span>, <span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"npa.logging"</span>, <span style="color:#3469e3;">"version"</span>: <span style="color:#3469e3;">"1.0.0"</span> }<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;],<br>
+		10.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"extends"</span>: [<br>
+		11.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+		12.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"point"</span>: <span style="color:#3469e3;">"npa.log.provider"</span>,<br>
+		13.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"my.plugin.logger"</span>,<br>
+		14.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"dir"</span>: <span style="color:#3469e3;">"my.plugin"</span><br>
+		15.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		16.&nbsp;&nbsp;&nbsp;],<br>
+		17.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"provides"</span>: [<br>
+		18.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"my.extension.point"</span> }<br>
+		19.&nbsp;&nbsp;&nbsp;]<br>
+		20.&nbsp;}
+		</div>
+
+		<h3>Key fields</h3>
+		<ul>
+			<li><b><code>id</code></b> — unique plugin identifier, used as the key in the runtime map</li>
+			<li><b><code>version</code></b> — semver string; when multiple versions of the same plugin are found, the highest wins</li>
+			<li><b><code>plugin</code></b> — relative path to the implementation module</li>
+			<li><b><code>requires</code></b> — explicit hard dependencies; the runtime will refuse to load this plugin if any are unresolved</li>
+			<li><b><code>extends</code></b> — contributions to extension points of other plugins; each entry must have a <code>point</code> (the extension point id) and a unique <code>id</code></li>
+			<li><b><code>provides</code></b> — extension points this plugin declares and owns</li>
+		</ul>
+
+		<b>Important:</b> the <code>extends</code> array must <b>never</b> end with a trailing comma —
+		<code>manifest.json</code> is parsed with <code>require()</code> which uses strict JSON.
+		A trailing comma will silently drop the entire plugin from the runtime.
+
+		<h2>Explicit Dependency Declaration</h2>
+
+		NPA uses a <b>weight-based topological sort</b> to determine plugin load order.
+		Each plugin's weight is computed recursively from its <code>requires</code> graph:
+		a plugin with no dependencies has weight 1; each dependency adds 10× its own weight.
+		Plugins are then loaded in ascending weight order, guaranteeing that every dependency
+		is initialized before the plugin that needs it.<br>
+		<br>
+		The resolution algorithm:
+		<ol>
+			<li>Scan all sites and parse every <code>manifest.json</code></li>
+			<li>For each plugin, verify that all <code>requires</code> entries resolve to a known plugin id — if any is missing, the plugin is marked <b>unresolved</b> and excluded from loading</li>
+			<li>Compute weights and sort</li>
+			<li>Load plugins in order: <code>require(plugin.js)</code> → <code>configure()</code> → <code>beforeExtensionPlugged()</code> → <code>lazzyPlug()</code> calls → <code>onConfigurationLoaded()</code></li>
+		</ol>
+
+		<b>Rule:</b> if plugin A must be initialized before plugin B, B must list A in its <code>requires</code>.
+		Do not rely on discovery order — it is filesystem-dependent and not guaranteed.
+
+		<h3>Circular dependency warning</h3>
+
+		The weight computation is recursive with no cycle guard. A circular dependency in <code>requires</code>
+		(A → B → A) will cause a <code>RangeError: Maximum call stack size exceeded</code> crash at startup.
+		If a plugin needs to <i>contribute</i> to another plugin but must not create a hard dependency cycle,
+		use <code>extends</code> only — the <code>lazzyPlug()</code> mechanism fires without adding to the weight graph.
+
+		<h2>Extension Points and lazzyPlug</h2>
+
+		An extension point is a named hook declared in a plugin's <code>provides</code> array.
+		When another plugin contributes to it via <code>extends</code>, the runtime calls
+		<code>lazzyPlug(extenderId, extensionConfig)</code> on the provider plugin at load time.<br>
+		<br>
+		The provider overrides <code>lazzyPlug()</code> to inspect the contribution and register it:
+
+		<div class="code">
+		&nbsp;1.&nbsp;plugin.lazzyPlug = function(extenderId, extensionConfig) {<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;if (<span style="color:#3469e3;">'my.extension.point'</span> === extensionConfig.point) {<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#888;">// extensionConfig is the full object from the contributor's manifest.json</span><br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let contributorPlugin = this.runtime.getPlugin(extenderId);<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.registeredItems.push({<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;label: extensionConfig.label,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handler: contributorPlugin[extensionConfig.handler]<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;}<br>
+		10.&nbsp;};
+		</div>
+
+		Note that <code>lazzyPlug()</code> is called <b>before</b> <code>onConfigurationLoaded()</code> of the provider.
+		If initialization work is needed after all contributions are collected, do it in <code>onConfigurationLoaded()</code>.
+
+		<h2>Lazy Plugin Loading</h2>
+
+		NPA uses a <b>PluginWrapper</b> to defer the actual <code>require(plugin.js)</code> call until
+		the plugin is first accessed via <code>runtime.getPlugin(id)</code> or <code>plugin.getService(name)</code>.
+		This means a plugin's code is only executed when something actually needs it — reducing startup time
+		and avoiding initialization order issues between independently developed plugins.
+
+		<h2>Services</h2>
+
+		The <code>npa.core.service</code> extension point allows a plugin to register itself as a named
+		<b>service</b> in the global service registry. Any other plugin can then retrieve it with:
+
+		<div class="code">
+		let myService = plugin.getService(<span style="color:#3469e3;">'my-service-name'</span>);
+		</div>
+
+		Service registration in <code>manifest.json</code>:
+
+		<div class="code">
+		{<br>
+		&nbsp;&nbsp;<span style="color:#3469e3;">"point"</span>: <span style="color:#3469e3;">"npa.core.service"</span>,<br>
+		&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"my.plugin.service"</span>,<br>
+		&nbsp;&nbsp;<span style="color:#3469e3;">"service"</span>: <span style="color:#3469e3;">"my-service-name"</span><br>
+		}
+		</div>
+
+		Services are resolved lazily — the plugin backing the service is only loaded when
+		<code>getService()</code> is first called.<br>
+		<br>
+		Adding <code>"autostart": true</code> to the extension forces the service to be loaded
+		immediately during application startup, before the application plugin's <code>start()</code>
+		is called — useful for services that must initialize background tasks or listeners early:
+
+		<div class="code">
+		{<br>
+		&nbsp;&nbsp;<span style="color:#3469e3;">"point"</span>: <span style="color:#3469e3;">"npa.core.service"</span>,<br>
+		&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"my.plugin.service"</span>,<br>
+		&nbsp;&nbsp;<span style="color:#3469e3;">"service"</span>: <span style="color:#3469e3;">"my-service-name"</span>,<br>
+		&nbsp;&nbsp;<span style="color:#3469e3;">"autostart"</span>: true<br>
+		}
+		</div>
+
+		<h2>Environment Variable Injection</h2>
+
+		Any string value in <code>manifest.json</code> that starts with <code>$</code> is treated as
+		an environment variable reference, with an optional default value after a comma:
+
+		<div class="code">
+		<span style="color:#3469e3;">"port"</span>: <span style="color:#3469e3;">"$MY_PORT,9080"</span>
+		</div>
+
+		Resolved at runtime via <code>plugin.getConfigValue('http.port')</code> (using a dot-path into
+		the manifest JSON). If the environment variable is set, its value is used; otherwise the default
+		is returned. The type can be specified as a second argument: <code>getConfigValue('http.port', 'integer')</code>.
+
+		<h2>Sites and the Site Configuration File</h2>
+
+		A <b>site</b> is a filesystem directory that the Integration Runtime scans for plugin directories.
+		Every sub-directory inside a site that contains a <code>manifest.json</code> is treated as a plugin.<br>
+		<br>
+		Sites are declared in a <b>site configuration file</b> (JSON), passed to the runtime at startup:
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"sites"</span>: [<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"default"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"location"</span>: <span style="color:#3469e3;">"./plugins"</span><br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"npa.ui.tools"</span>,<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"location"</span>: <span style="color:#3469e3;">"./npa-ui-tools/src/plugins"</span><br>
+		10.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},<br>
+		11.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>
+		12.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"apaf"</span>,<br>
+		13.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"location"</span>: <span style="color:#3469e3;">"./apaf/src/plugins"</span><br>
+		14.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		15.&nbsp;&nbsp;&nbsp;]<br>
+		16.&nbsp;}
+		</div>
+
+		The runtime scans all sites in declaration order. When the same plugin <code>id</code> is found
+		in multiple sites, the <b>highest version</b> wins. This allows downstream projects (like APAF)
+		to override or upgrade individual NPA plugins without forking the entire repository.<br>
+		<br>
+		The site config file path is resolved in this priority order:
+		<ol>
+			<li>Environment variable <code>APAF_INSTALLATION</code> or <code>NPA_SITE_CONFIG</code></li>
+			<li>Command-line argument <code>--installation</code> or <code>--site_config</code></li>
+			<li>Default file <code>./appConfig.json</code> in the working directory</li>
+		</ol>
+
+		<h2>Startup Sequence</h2>
+
+		<ol>
+			<li><b>Load <code>.env</code></b> — environment variables from the env file (path overridable via <code>ENV_FILE</code>)</li>
+			<li><b>Discover</b> — scan all sites, parse every <code>manifest.json</code> via <code>require()</code></li>
+			<li><b>Resolve</b> — check all <code>requires</code> entries; mark plugins with missing deps as unresolved</li>
+			<li><b>Weight &amp; Sort</b> — compute topological weights, bubble-sort plugins ascending</li>
+			<li><b>Lazy-load</b> — for each resolved plugin in order: register extension points, then register extensions (<code>lazzyPlug</code> queued)</li>
+			<li><b>Start Application</b> — <code>npa.core.startApplication(APPLICATION)</code> triggers autostart services and calls the application plugin's <code>start()</code></li>
+		</ol>
+
+		<h2>Plugin Lifecycle Callbacks</h2>
+
+		Override these methods in your <code>plugin.js</code> to hook into the lifecycle:
+
+		<table>
+			<tr><th>Method</th><th>When called</th></tr>
+			<tr><td><code>beforeExtensionPlugged()</code></td><td>After <code>configure()</code>, before any <code>lazzyPlug()</code> calls — use for pre-wiring initialization</td></tr>
+			<tr><td><code>lazzyPlug(extenderId, config)</code></td><td>For each extension contributed to a point this plugin provides — collect contributions here</td></tr>
+			<tr><td><code>onConfigurationLoaded()</code></td><td>After all contributions have been collected — start timers, open connections, etc.</td></tr>
+			<tr><td><code>start()</code></td><td>Only for application plugins (registered via <code>npa.core.application</code>) — entry point of the application</td></tr>
+		</table>
+
+	</body>
+</html>

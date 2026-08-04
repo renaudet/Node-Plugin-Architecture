@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - npa.system.call plugin">
+		<meta name="Author" lang="fr" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>npa.system.call - OS Process Plugin</title>
+	</head>
+	<body>
+
+		<h1>npa.system.call &mdash; OS Process Plugin</h1>
+
+		<h2>Overview</h2>
+
+		The <b>npa.system.call</b> plugin spawns and tracks OS-level child processes from within
+		NPA plugins. It wraps Node.js's <code>child_process.spawn()</code> and maintains an
+		in-memory table of process wrappers with their status, output and exit code.<br>
+		<br>
+		Unlike the other NPA plugins, <code>npa.system.call</code> does <b>not</b> register a named
+		service. It is accessed directly through the runtime:
+
+		<div class="code">
+		let sysCall = plugin.runtime.getPlugin(<span style="color:#3469e3;">'npa.system.call'</span>);
+		</div>
+
+		<h2>Methods</h2>
+
+		<h3><code>executeCommand(launchConfiguration, onLaunched, onCompleted)</code></h3>
+
+		Spawns a child process according to <code>launchConfiguration</code> and calls
+		<code>onLaunched(err, pid)</code> immediately after the process starts.
+		<code>onCompleted()</code> is called (with no arguments) when the process exits.<br><br>
+
+		The <code>launchConfiguration</code> object supports the following fields:<br><br>
+
+		<table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;font-size:0.85rem;width:90%;margin-left:30px;">
+			<thead style="background-color:#293c4f;color:#fff;">
+				<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+			</thead>
+			<tbody>
+				<tr><td><code>command</code></td><td>string</td><td>Executable to run</td></tr>
+				<tr><td><code>workDir</code></td><td>string</td><td>Working directory for the process</td></tr>
+				<tr><td><code>detached</code></td><td>boolean</td><td>Run the process detached from the Node.js event loop</td></tr>
+				<tr><td><code>shell</code></td><td>boolean</td><td>Run inside a system shell (<code>sh</code> / <code>cmd.exe</code>)</td></tr>
+				<tr><td><code>inherit</code></td><td>boolean</td><td>Inherit the current process environment variables</td></tr>
+				<tr><td><code>environment</code></td><td>object</td><td>Additional environment variables to set</td></tr>
+			</tbody>
+		</table>
+		<br>
+		All stdout and stderr output is captured line-by-line in the process wrapper's
+		<code>output</code> array and retrievable by PID via the <code>process</code> map.
+
+		<h2>Usage Example</h2>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let sysCall = plugin.runtime.getPlugin(<span style="color:#3469e3;">'npa.system.call'</span>);<br>
+		&nbsp;2.&nbsp;<br>
+		&nbsp;3.&nbsp;let config = {<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"command"</span>: <span style="color:#3469e3;">"ls"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"workDir"</span>: <span style="color:#3469e3;">"/tmp"</span>,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"shell"</span>: true,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"inherit"</span>: true,<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"environment"</span>: {}<br>
+		&nbsp;9.&nbsp;};<br>
+		10.&nbsp;<br>
+		11.&nbsp;sysCall.executeCommand(<br>
+		12.&nbsp;&nbsp;&nbsp;config,<br>
+		13.&nbsp;&nbsp;&nbsp;function(err, pid) {<br>
+		14.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(err) {<br>
+		15.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.error(<span style="color:#3469e3;">'Failed to launch: '</span> + err);<br>
+		16.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br>
+		17.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.info(<span style="color:#3469e3;">'Process started, PID: '</span> + pid);<br>
+		18.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		19.&nbsp;&nbsp;&nbsp;},<br>
+		20.&nbsp;&nbsp;&nbsp;function() {<br>
+		21.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let wrapper = sysCall.process[pid];<br>
+		22.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.info(<span style="color:#3469e3;">'Exit code: '</span> + wrapper.exitCode);<br>
+		23.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.info(<span style="color:#3469e3;">'Output: '</span> + wrapper.output.join(<span style="color:#3469e3;">'\n'</span>));<br>
+		24.&nbsp;&nbsp;&nbsp;}<br>
+		25.&nbsp;);
+		</div>
+
+		<h2>Notes</h2>
+		<ul>
+			<li>Process wrappers are kept in memory for up to 5 minutes after completion, then removed
+			    by an internal reaper thread.</li>
+			<li>The reaper thread is only active while at least one process is still running.</li>
+			<li>No argument list is passed to the command — use <code>shell: true</code> to compose
+			    complex command lines with pipes or redirections.</li>
+		</ul>
+
+	</body>
+</html>

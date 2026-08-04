@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - npa.runtime.props plugin">
+		<meta name="Author" lang="fr" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>npa.runtime.props - Runtime Properties Plugin</title>
+	</head>
+	<body>
+
+		<h1>npa.runtime.props &mdash; Runtime Properties Plugin</h1>
+
+		<h2>Overview</h2>
+
+		The <b>npa.runtime.props</b> plugin provides a shared, in-memory key/value store for
+		runtime configuration values. Properties are declared by any plugin via the
+		<code>npa.runtime.property.provider</code> extension point and can be read or written
+		at runtime by any other plugin through the <b><code>properties</code></b> service:
+
+		<div class="code">
+		let propService = plugin.getService(<span style="color:#3469e3;">'properties'</span>);
+		</div>
+
+		When a property changes, the plugin emits events through the <code>broker</code> service:
+		<code>runtime.property.created</code>, <code>runtime.property.updated</code> and
+		<code>runtime.property.locked</code>.
+
+		<h2>Service Name</h2>
+
+		<div class="code">
+		<span style="color:#3469e3;">'properties'</span>
+		</div>
+
+		<h2>Methods</h2>
+
+		<h3><code>getProperty(propertyName)</code></h3>
+
+		Returns the current value of the named property, or <code>undefined</code> if not found.
+
+		<h3><code>setProperty(propertyName, value)</code></h3>
+
+		Updates the value of a property. If the property is <code>locked</code>, the call is silently
+		ignored. Returns the effective value after the call.
+
+		<h3><code>lockProperty(propertyName)</code></h3>
+
+		Permanently locks a property so its value can no longer be changed via <code>setProperty()</code>.
+
+		<h3><code>getProperties()</code></h3>
+
+		Returns all registered properties as an array of property descriptor objects.
+
+		<h2>Declaring a Property</h2>
+
+		Properties are declared in a plugin's <code>manifest.json</code> using the
+		<code>npa.runtime.property.provider</code> extension point:
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"point"</span>: <span style="color:#3469e3;">"npa.runtime.property.provider"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"my.plugin.property.maxRetry"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"my.plugin.max.retry"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"description"</span>: <span style="color:#3469e3;">"Maximum number of retry attempts"</span>,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"int"</span>,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"value"</span>: 3,<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"locked"</span>: false<br>
+		&nbsp;9.&nbsp;}
+		</div>
+
+		Supported types: <code>string</code>, <code>int</code>, <code>boolean</code>,
+		<code>moment</code>, <code>percentage</code>.
+
+		<h2>Usage Example</h2>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let propService = plugin.getService(<span style="color:#3469e3;">'properties'</span>);<br>
+		&nbsp;2.&nbsp;<br>
+		&nbsp;3.&nbsp;// read a property<br>
+		&nbsp;4.&nbsp;let maxRetry = propService.getProperty(<span style="color:#3469e3;">'my.plugin.max.retry'</span>);<br>
+		&nbsp;5.&nbsp;<br>
+		&nbsp;6.&nbsp;// update it at runtime<br>
+		&nbsp;7.&nbsp;propService.setProperty(<span style="color:#3469e3;">'my.plugin.max.retry'</span>, 5);<br>
+		&nbsp;8.&nbsp;<br>
+		&nbsp;9.&nbsp;// lock it so it can no longer be changed<br>
+		10.&nbsp;propService.lockProperty(<span style="color:#3469e3;">'my.plugin.max.retry'</span>);
+		</div>
+
+		<h2>Notes</h2>
+		<ul>
+			<li>Properties are initialised at startup from extension point declarations and reset on
+			    every server restart — they are not persisted to disk or database.</li>
+			<li>A property name that is not declared cannot be created at runtime via <code>setProperty()</code>;
+			    it must be contributed through the extension point.</li>
+			<li>Change events are only emitted when the <code>broker</code> service is available.</li>
+		</ul>
+
+	</body>
+</html>

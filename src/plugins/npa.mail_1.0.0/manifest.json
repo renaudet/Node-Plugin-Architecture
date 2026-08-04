@@ -1,6 +1,6 @@
 {
   "id": "npa.mail",
-  "name": "REST client provider",
+  "name": "Mail service provider for NPA",
   "version": "1.0.0",
   "plugin": "plugin.js",
   "requires": [

@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - npa.crypto plugin">
+		<meta name="Author" lang="fr" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>npa.crypto - Cryptography Plugin</title>
+	</head>
+	<body>
+
+		<h1>npa.crypto &mdash; Cryptography Plugin</h1>
+
+		<h2>Overview</h2>
+
+		The <b>npa.crypto</b> plugin provides symmetric encryption and decryption services using the
+		<b>AES-256-CBC</b> cipher, plus a random key generator. It is registered as a service under
+		the name <b><code>cryptography</code></b>:
+
+		<div class="code">
+		let crypto = plugin.getService(<span style="color:#3469e3;">'cryptography'</span>);
+		</div>
+
+		<h2>Service Name</h2>
+
+		<div class="code">
+		<span style="color:#3469e3;">'cryptography'</span>
+		</div>
+
+		<h2>Methods</h2>
+
+		<h3><code>encrypt(data, key?)</code></h3>
+
+		Encrypts a UTF-8 string using AES-256-CBC and returns the result as a hex string.
+		<code>key</code> is optional — if omitted, the built-in default key is used.
+		The key must be exactly <b>32 characters</b> long.
+
+		<h3><code>decrypt(encryptedData, key?)</code></h3>
+
+		Decrypts a hex string produced by <code>encrypt()</code> and returns the original UTF-8 string.
+		The same key used for encryption must be supplied.
+
+		<h3><code>generateRandomKey()</code></h3>
+
+		Generates and returns a random 32-character alphanumeric string suitable for use as an AES-256 key.
+
+		<h2>Usage Examples</h2>
+
+		<h3>Encrypt and decrypt with the default key</h3>
+
+		<div class="code">
+		1.&nbsp;let crypto = plugin.getService(<span style="color:#3469e3;">'cryptography'</span>);<br>
+		2.&nbsp;<br>
+		3.&nbsp;let encrypted = crypto.encrypt(<span style="color:#3469e3;">'my secret value'</span>);<br>
+		4.&nbsp;plugin.info(<span style="color:#3469e3;">'encrypted: '</span> + encrypted);<br>
+		5.&nbsp;<br>
+		6.&nbsp;let original = crypto.decrypt(encrypted);<br>
+		7.&nbsp;plugin.info(<span style="color:#3469e3;">'original: '</span> + original);
+		</div>
+
+		<h3>Encrypt and decrypt with a custom key</h3>
+
+		<div class="code">
+		1.&nbsp;let crypto = plugin.getService(<span style="color:#3469e3;">'cryptography'</span>);<br>
+		2.&nbsp;<br>
+		3.&nbsp;let key = crypto.generateRandomKey();<br>
+		4.&nbsp;let encrypted = crypto.encrypt(<span style="color:#3469e3;">'sensitive data'</span>, key);<br>
+		5.&nbsp;let decrypted = crypto.decrypt(encrypted, key);<br>
+		6.&nbsp;// decrypted === 'sensitive data'
+		</div>
+
+		<h3>Storing encrypted credentials in a plugin</h3>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let crypto = plugin.getService(<span style="color:#3469e3;">'cryptography'</span>);<br>
+		&nbsp;2.&nbsp;<br>
+		&nbsp;3.&nbsp;// store encrypted password in config<br>
+		&nbsp;4.&nbsp;let encryptedPwd = crypto.encrypt(plainPassword);<br>
+		&nbsp;5.&nbsp;<br>
+		&nbsp;6.&nbsp;// later, recover it before use<br>
+		&nbsp;7.&nbsp;let plainPassword = crypto.decrypt(encryptedPwd);
+		</div>
+
+		<h2>Notes</h2>
+		<ul>
+			<li>The cipher is <b>AES-256-CBC</b> with a fixed initialisation vector. This is suitable for
+			    configuration data and tokens, but not as a general-purpose cryptographic library for
+			    user-facing data.</li>
+			<li>The default key is built into the plugin. For production use, always supply your own
+			    32-character key and store it outside the codebase (e.g. as an environment variable).</li>
+			<li>Both <code>encrypt()</code> and <code>decrypt()</code> are synchronous and return the
+			    result directly — no callback needed.</li>
+		</ul>
+
+	</body>
+</html>

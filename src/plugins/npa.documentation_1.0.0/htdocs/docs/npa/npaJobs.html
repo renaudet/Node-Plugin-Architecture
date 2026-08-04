@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - npa.jobs plugin">
+		<meta name="Author" lang="fr" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>npa.jobs - Job Management Plugin</title>
+	</head>
+	<body>
+
+		<h1>npa.jobs &mdash; Job Management Plugin</h1>
+
+		<h2>Overview</h2>
+
+		The <b>npa.jobs</b> plugin provides an in-memory job tracking service for long-running
+		server-side operations. A <i>job</i> is a lightweight record that carries status and
+		progress information so that a browser client can poll for completion without blocking.
+		The service is available as <b><code>jobs</code></b>:
+
+		<div class="code">
+		let jobService = plugin.getService(<span style="color:#3469e3;">'jobs'</span>);
+		</div>
+
+		<h2>Service Name</h2>
+
+		<div class="code">
+		<span style="color:#3469e3;">'jobs'</span>
+		</div>
+
+		<h2>Job Lifecycle</h2>
+
+		A job moves through the following statuses:<br><br>
+		<b>pending</b> &rarr; <b>ongoing</b> &rarr; <b>completed</b><br>
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&rarr; <b>setRollbackOnly</b> &rarr; <b>terminated</b>
+		<br><br>
+		Jobs that are not revalidated within the expiration timeout (default 60 s) are automatically
+		marked <code>setRollbackOnly</code> and then <code>terminated</code>.
+		Completed jobs are purged after the same expiration delay.
+
+		<h2>Methods</h2>
+
+		<h3><code>createJob(owner, description, longRunning?)</code></h3>
+
+		Creates a new job record with status <code>pending</code> and returns it.
+		<code>owner</code> is a string identifier (e.g. a username). Set <code>longRunning</code>
+		to <code>true</code> to prevent expiration-based cleanup until the job completes.
+
+		<h3><code>getJob(jobId)</code></h3>
+
+		Retrieves a job by its ID. The first call transitions the status from <code>pending</code>
+		to <code>ongoing</code> and stamps the revalidation time — repeated polling keeps the job alive.
+
+		<h3><code>updateJob(job)</code></h3>
+
+		Updates progress and/or status of an <code>ongoing</code> job.
+		Set <code>job.progress</code> (0–100) to report advancement.
+		Set <code>job.status</code> to <code>'completed'</code> or <code>'setRollbackOnly'</code>
+		to terminate the job. Returns the updated internal job record.
+
+		<h3><code>getJobs()</code></h3>
+
+		Returns the full list of currently tracked jobs as an array.
+
+		<h2>Usage Example</h2>
+
+		<h3>Server side: creating and progressing a job</h3>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let jobService = plugin.getService(<span style="color:#3469e3;">'jobs'</span>);<br>
+		&nbsp;2.&nbsp;<br>
+		&nbsp;3.&nbsp;// create the job and return its ID to the caller<br>
+		&nbsp;4.&nbsp;let job = jobService.createJob(<span style="color:#3469e3;">'admin'</span>, <span style="color:#3469e3;">'Importing data...'</span>);<br>
+		&nbsp;5.&nbsp;<br>
+		&nbsp;6.&nbsp;// simulate progress in an async operation<br>
+		&nbsp;7.&nbsp;setTimeout(function() {<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;jobService.updateJob({ <span style="color:#3469e3;">"id"</span>: job.id, <span style="color:#3469e3;">"progress"</span>: 50 });<br>
+		&nbsp;9.&nbsp;}, 2000);<br>
+		10.&nbsp;<br>
+		11.&nbsp;setTimeout(function() {<br>
+		12.&nbsp;&nbsp;&nbsp;jobService.updateJob({ <span style="color:#3469e3;">"id"</span>: job.id, <span style="color:#3469e3;">"progress"</span>: 100, <span style="color:#3469e3;">"status"</span>: <span style="color:#3469e3;">'completed'</span> });<br>
+		13.&nbsp;}, 5000);<br>
+		14.&nbsp;<br>
+		15.&nbsp;// return the job ID to the browser so it can poll<br>
+		16.&nbsp;then(null, { <span style="color:#3469e3;">"jobId"</span>: job.id });
+		</div>
+
+		<h3>Browser side: polling for completion</h3>
+
+		<div class="code">
+		&nbsp;1.&nbsp;pollJob = function(jobId) {<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;apaf.call({ <span style="color:#3469e3;">"method"</span>: <span style="color:#3469e3;">"GET"</span>, <span style="color:#3469e3;">"uri"</span>: <span style="color:#3469e3;">"/apaf-jobs/job/"</span> + jobId, <span style="color:#3469e3;">"payload"</span>: {} })<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.then(function(job) {<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(job.status === <span style="color:#3469e3;">'completed'</span>) {<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;showSuccess(<span style="color:#3469e3;">'Done!'</span>);<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else if(job.status === <span style="color:#3469e3;">'terminated'</span>) {<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;showError(<span style="color:#3469e3;">'Job failed'</span>);<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setTimeout(function() { pollJob(jobId); }, 1000);<br>
+		10.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		11.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;})<br>
+		12.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.onError(function(msg) { showError(msg); });<br>
+		13.&nbsp;}
+		</div>
+
+		<h2>Notes</h2>
+		<ul>
+			<li>Jobs are stored <b>in memory only</b> — they are lost on server restart.</li>
+			<li>The check loop runs every 30 seconds by default (configurable via the
+			    <code>job.check.loop.timeout</code> runtime property).</li>
+			<li>The expiration delay is 60 seconds by default (configurable via
+			    <code>job.expiration.timeout</code>).</li>
+			<li>Long-running jobs (flag <code>longRunning: true</code>) are exempt from expiration
+			    until they reach <code>completed</code> status.</li>
+		</ul>
+
+	</body>
+</html>

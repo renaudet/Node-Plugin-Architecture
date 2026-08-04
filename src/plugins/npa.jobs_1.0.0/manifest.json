@@ -22,20 +22,20 @@
   	{
   		"point": "npa.runtime.property.provider",
   		"id": "npa.jobs.property.timeout",
-		"name": "job.check.loop.timeout",
-		"description": "Delay (ms) between two checks on the jobs list",
-		"type": "int",
-		"value": 30000,
-		"locked": false
+  		"name": "job.check.loop.timeout",
+  		"description": "Delay (ms) between two checks on the jobs list",
+  		"type": "int",
+  		"value": 30000,
+  		"locked": false
   	},
   	{
   		"point": "npa.runtime.property.provider",
   		"id": "npa.jobs.property.expiration.timeout",
-		"name": "job.expiration.timeout",
-		"description": "Expiration delay (ms) before a job is considered defunct",
-		"type": "int",
-		"value": 60000,
-		"locked": false
+  		"name": "job.expiration.timeout",
+  		"description": "Expiration delay (ms) before a job is considered defunct",
+  		"type": "int",
+  		"value": 60000,
+  		"locked": false
   	}
   ],
   "provides": [

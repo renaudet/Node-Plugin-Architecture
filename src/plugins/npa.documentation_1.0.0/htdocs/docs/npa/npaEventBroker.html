@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - npa.event.broker plugin">
+		<meta name="Author" lang="fr" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>npa.event.broker - Event-Driven Plugin</title>
+	</head>
+	<body>
+
+		<h1>npa.event.broker &mdash; Event-Driven Plugin</h1>
+
+		<h2>Overview</h2>
+
+		The <b>npa.event.broker</b> plugin implements a server-side publish/subscribe bus on top of
+		Node.js's built-in <code>EventEmitter</code>. It enables decoupled communication between
+		plugins without direct imports. The service is available as <b><code>broker</code></b>:
+
+		<div class="code">
+		let broker = plugin.getService(<span style="color:#3469e3;">'broker'</span>);
+		</div>
+
+		<h2>Service Name</h2>
+
+		<div class="code">
+		<span style="color:#3469e3;">'broker'</span>
+		</div>
+
+		<h2>Event Structure</h2>
+
+		Every event passed to <code>emit()</code> must carry at least a <code>name</code> and a
+		<code>data</code> field. A <code>source</code> field is optional but recommended for debugging:
+
+		<div class="code">
+		{<br>
+		&nbsp;&nbsp;<span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"my.event.name"</span>,&nbsp;&nbsp;<span style="color: #888;">// required</span><br>
+		&nbsp;&nbsp;<span style="color:#3469e3;">"source"</span>: <span style="color:#3469e3;">"my.plugin"</span>,&nbsp;&nbsp;&nbsp;<span style="color: #888;">// optional</span><br>
+		&nbsp;&nbsp;<span style="color:#3469e3;">"data"</span>: { ... }&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #888;">// required</span><br>
+		}
+		</div>
+
+		The broker automatically stamps each event with an <code>emitted</code> timestamp before
+		dispatching it to registered handlers.
+
+		<h2>Methods</h2>
+
+		<h3><code>emit(event)</code></h3>
+
+		Publishes an event to all registered handlers for <code>event.name</code>.
+		Returns <code>true</code> on success, <code>false</code> if the event is malformed.
+
+		<h3><code>registerHandler(eventName, handlerId, handlerCallback)</code></h3>
+
+		Subscribes <code>handlerCallback</code> to events named <code>eventName</code>.
+		<code>handlerId</code> is a unique identifier for this subscription (used to unregister it later).
+		The callback receives the full event object: <code>function(event)</code>.
+		Handler errors are caught and logged — a failing handler never crashes the bus.
+
+		<h3><code>unregisterHandler(eventName, handlerId)</code></h3>
+
+		Removes the subscription registered under <code>handlerId</code> for <code>eventName</code>.
+
+		<h3><code>unregisterAllHandler(eventName)</code></h3>
+
+		Removes all subscriptions for <code>eventName</code>, regardless of their handler ID.
+
+		<h2>Usage Examples</h2>
+
+		<h3>Publishing an event</h3>
+
+		<div class="code">
+		1.&nbsp;let broker = plugin.getService(<span style="color:#3469e3;">'broker'</span>);<br>
+		2.&nbsp;<br>
+		3.&nbsp;broker.emit({<br>
+		4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"user.loggedIn"</span>,<br>
+		5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"source"</span>: <span style="color:#3469e3;">"apaf.security"</span>,<br>
+		6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"data"</span>: { <span style="color:#3469e3;">"login"</span>: <span style="color:#3469e3;">"john.doe"</span> }<br>
+		7.&nbsp;});
+		</div>
+
+		<h3>Subscribing to an event</h3>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let broker = plugin.getService(<span style="color:#3469e3;">'broker'</span>);<br>
+		&nbsp;2.&nbsp;<br>
+		&nbsp;3.&nbsp;broker.registerHandler(<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">'user.loggedIn'</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">'my.plugin.loginWatcher'</span>,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;function(event) {<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.info(<span style="color:#3469e3;">'User logged in: '</span> + event.data.login);<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;}<br>
+		&nbsp;9.&nbsp;);
+		</div>
+
+		<h3>Unsubscribing</h3>
+
+		<div class="code">
+		1.&nbsp;broker.unregisterHandler(<span style="color:#3469e3;">'user.loggedIn'</span>, <span style="color:#3469e3;">'my.plugin.loginWatcher'</span>);
+		</div>
+
+		<h2>Notes</h2>
+		<ul>
+			<li>The underlying <code>EventEmitter</code> has no listener limit (<code>setMaxListeners(0)</code>),
+			    so any number of handlers can be registered for a given event name.</li>
+			<li>Events are dispatched synchronously in the order handlers were registered.</li>
+			<li>Several core plugins emit well-known events:
+			    <code>workspace.file.created</code>, <code>workspace.file.updated</code>,
+			    <code>workspace.project.created</code>, <code>runtime.property.created</code>,
+			    <code>runtime.property.updated</code>, <code>runtime.property.locked</code>.</li>
+		</ul>
+
+	</body>
+</html>

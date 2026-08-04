@@ -20,6 +20,20 @@
       "dir": "npa.mcp"
     },
     {
+      "point": "npa.http.static",
+      "id": "npa.mcp.htdocs",
+      "path": "/npa-mcp",
+      "localDir": "htdocs"
+    },
+    {
+      "point": "npa.documentation.page",
+      "id": "npa.mcp.doc",
+      "label": "npa.mcp - MCP Server",
+      "category": "NPA Server-side Plugins",
+      "subcategory": "Integration",
+      "url": "/npa-mcp/docs/npaMcp.html"
+    },
+    {
       "point": "npa.http.router",
       "id": "npa.mcp.router",
       "path": "/mcp"

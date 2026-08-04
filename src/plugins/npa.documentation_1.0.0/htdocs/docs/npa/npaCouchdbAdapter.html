@@ -1,0 +1,173 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - npa.couchdb.adapter plugin">
+		<meta name="Author" lang="fr" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>npa.couchdb.adapter - CouchDB Persistence Plugin</title>
+	</head>
+	<body>
+
+		<h1>npa.couchdb.adapter &mdash; CouchDB Persistence Plugin</h1>
+
+		<h2>Overview</h2>
+
+		The <b>npa.couchdb.adapter</b> plugin is the primary persistence layer for NPA and APAF.
+		It wraps Apache CouchDB's HTTP API into a uniform CRUD interface and is accessed through the
+		NPA service registry under the name <b><code>couchdb</code></b>:
+
+		<div class="code">
+		let couchdb = plugin.getService(<span style="color:#3469e3;">'couchdb'</span>);
+		</div>
+
+		Datasources (database connections) are declared via the <code>npa.couchdb.adapter.datasource</code>
+		extension point in each plugin's <code>manifest.json</code>, and resolved at startup by a
+		string <i>reference</i> key passed to every API call.<br>
+		<br>
+		An optional environment variable <code>COUCH_DATABASE_PREFIX</code> can be set to prefix all
+		database names — useful to separate dev/staging/production data in a shared CouchDB instance.
+
+		<h2>Service Name</h2>
+
+		<div class="code">
+		<span style="color:#3469e3;">'couchdb'</span>
+		</div>
+
+		<h2>Methods</h2>
+
+		<h3><code>query(reference, query, callback)</code></h3>
+
+		Executes a CouchDB Mango query and returns an array of matching documents.<br>
+		<code>query</code> is a standard CouchDB Mango query object (<code>{ selector: {...} }</code>).
+		The <code>limit</code> defaults to the datasource's <code>maxPageSize</code> if not specified.
+
+		<h3><code>findByPrimaryKey(reference, data, callback)</code></h3>
+
+		Retrieves a single document by its <code>id</code> field. Returns <code>null</code> (not an error)
+		if the document does not exist.
+
+		<h3><code>createRecord(reference, data, callback)</code></h3>
+
+		Creates a new document. If <code>data.id</code> is absent a UUID v4 is generated automatically.
+		On success, the callback receives the record with its newly assigned <code>_rev</code> field.
+
+		<h3><code>updateRecord(reference, data, callback)</code></h3>
+
+		Updates an existing document. The method first reads the latest revision from CouchDB, then
+		merges the incoming fields on top of it (fields absent from <code>data</code> are preserved),
+		and writes the merged result back. The callback receives the fully merged, updated record.
+
+		<h3><code>deleteRecord(reference, data, callback)</code></h3>
+
+		Deletes a document identified by <code>data.id</code>. The method resolves the current
+		<code>_rev</code> automatically before issuing the DELETE.
+
+		<h3><code>checkDatabase(reference, callback)</code></h3>
+
+		Checks whether the target database exists. Callback: <code>function(err, exists)</code>.
+
+		<h3><code>createDatabase(reference, callback)</code></h3>
+
+		Creates the target CouchDB database if it does not already exist.
+
+		<h3><code>deleteDatabase(reference, callback)</code></h3>
+
+		Permanently deletes the target CouchDB database and all its documents.
+
+		<h2>Usage Examples</h2>
+
+		<h3>Querying documents with a Mango selector</h3>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let couchdb = plugin.getService(<span style="color:#3469e3;">'couchdb'</span>);<br>
+		&nbsp;2.&nbsp;let query = { <span style="color:#3469e3;">"selector"</span>: { <span style="color:#3469e3;">"type"</span>: { <span style="color:#3469e3;">"$eq"</span>: <span style="color:#3469e3;">"snippet"</span> } } };<br>
+		&nbsp;3.&nbsp;<br>
+		&nbsp;4.&nbsp;couchdb.query(<span style="color:#3469e3;">'my.datasource'</span>, query, function(err, docs) {<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;if(err) {<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.error(<span style="color:#3469e3;">'Query failed: '</span> + err);<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;} else {<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// docs is an array of CouchDB documents<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(var i = 0; i &lt; docs.length; i++) {<br>
+		10.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.info('found: ' + docs[i].name);<br>
+		11.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		12.&nbsp;&nbsp;&nbsp;}<br>
+		13.&nbsp;});
+		</div>
+
+		<h3>Creating a record</h3>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let couchdb = plugin.getService(<span style="color:#3469e3;">'couchdb'</span>);<br>
+		&nbsp;2.&nbsp;let record = {<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"myRecord"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"value"</span>: 42<br>
+		&nbsp;5.&nbsp;};<br>
+		&nbsp;6.&nbsp;<br>
+		&nbsp;7.&nbsp;couchdb.createRecord(<span style="color:#3469e3;">'my.datasource'</span>, record, function(err, created) {<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;if(err) {<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.error(<span style="color:#3469e3;">'Create failed: '</span> + err);<br>
+		10.&nbsp;&nbsp;&nbsp;} else {<br>
+		11.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.info(<span style="color:#3469e3;">'Created with id: '</span> + created.id);<br>
+		12.&nbsp;&nbsp;&nbsp;}<br>
+		13.&nbsp;});
+		</div>
+
+		<h3>Updating a record</h3>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let couchdb = plugin.getService(<span style="color:#3469e3;">'couchdb'</span>);<br>
+		&nbsp;2.&nbsp;// only provide the fields to change; other fields are preserved<br>
+		&nbsp;3.&nbsp;let patch = { <span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"abc-123"</span>, <span style="color:#3469e3;">"value"</span>: 99 };<br>
+		&nbsp;4.&nbsp;<br>
+		&nbsp;5.&nbsp;couchdb.updateRecord(<span style="color:#3469e3;">'my.datasource'</span>, patch, function(err, updated) {<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;if(err) {<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.error(<span style="color:#3469e3;">'Update failed: '</span> + err);<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;} else {<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plugin.info(<span style="color:#3469e3;">'Updated _rev: '</span> + updated._rev);<br>
+		10.&nbsp;&nbsp;&nbsp;}<br>
+		11.&nbsp;});
+		</div>
+
+		<h2>Declaring a Datasource</h2>
+
+		Datasources are declared in the contributing plugin's <code>manifest.json</code>:
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"point"</span>: <span style="color:#3469e3;">"npa.couchdb.adapter.datasource"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"my.plugin.datasource"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"reference"</span>: <span style="color:#3469e3;">"my.datasource"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"hostname"</span>: <span style="color:#3469e3;">"127.0.0.1"</span>,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"port"</span>: <span style="color:#3469e3;">"5984"</span>,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"dbname"</span>: <span style="color:#3469e3;">"my_database"</span>,<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"maxPageSize"</span>: 500,<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"environment"</span>: {<br>
+		10.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"hostname"</span>: <span style="color:#3469e3;">"MY_COUCH_HOST"</span>,<br>
+		11.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"port"</span>: <span style="color:#3469e3;">"MY_COUCH_PORT"</span>,<br>
+		12.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"username"</span>: <span style="color:#3469e3;">"MY_COUCH_USER"</span>,<br>
+		13.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"password"</span>: <span style="color:#3469e3;">"MY_COUCH_PASSWD"</span><br>
+		14.&nbsp;&nbsp;&nbsp;}<br>
+		15.&nbsp;}
+		</div>
+
+		When an <code>environment</code> block is present, the corresponding environment variables
+		override the static values at startup.
+
+		<h2>Notes</h2>
+		<ul>
+			<li>All callbacks follow the Node.js error-first convention: <code>function(err, result)</code>.</li>
+			<li><code>updateRecord</code> performs a read-then-write and merges fields, so concurrent updates
+			    to the same document from multiple callers may overwrite each other — use with care in
+			    high-concurrency scenarios.</li>
+			<li>Database transactions are counted and pushed to the <code>database.transaction</code>
+			    telemetry dimension every 30 seconds.</li>
+		</ul>
+
+	</body>
+</html>

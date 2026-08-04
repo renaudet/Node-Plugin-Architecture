@@ -1,0 +1,120 @@
+{
+  "id": "npa.documentation",
+  "name": "Documentation collector for NPA",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "npa.core","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.http","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.documentation.logger",
+  		"dir": "npa.documentation"
+  	},
+  	{
+  		"point": "npa.http.static",
+  		"id": "npa.documentation.htdocs",
+  		"path": "/npa-documentation",
+  		"localDir": "htdocs"
+  	},
+  	{
+  		"point": "npa.core.service",
+  		"id": "npa.documentation.service",
+  		"service": "npa-documentation"
+  	},
+  	{
+  		"point": "npa.documentation.page",
+  		"id": "npa.programming.model.doc",
+  		"label": "NPA - Programming Model",
+  		"category": "NPA Server-side Plugins",
+  		"subcategory": "Architecture",
+  		"url": "/npa-documentation/docs/npa/npaProgrammingModel.html"
+  	},
+  	{
+  		"point": "npa.documentation.page",
+  		"id": "npa.couchdb.adapter.doc",
+  		"label": "npa.couchdb.adapter - CouchDB Persistence",
+  		"category": "NPA Server-side Plugins",
+  		"subcategory": "Persistence",
+  		"url": "/npa-documentation/docs/npa/npaCouchdbAdapter.html"
+  	},
+  	{
+  		"point": "npa.documentation.page",
+  		"id": "npa.crypto.doc",
+  		"label": "npa.crypto - Cryptography",
+  		"category": "NPA Server-side Plugins",
+  		"subcategory": "Security",
+  		"url": "/npa-documentation/docs/npa/npaCrypto.html"
+  	},
+  	{
+  		"point": "npa.documentation.page",
+  		"id": "npa.event.broker.doc",
+  		"label": "npa.event.broker - Event Bus",
+  		"category": "NPA Server-side Plugins",
+  		"subcategory": "Integration",
+  		"url": "/npa-documentation/docs/npa/npaEventBroker.html"
+  	},
+  	{
+  		"point": "npa.documentation.page",
+  		"id": "npa.jobs.doc",
+  		"label": "npa.jobs - Job Management",
+  		"category": "NPA Server-side Plugins",
+  		"subcategory": "Async & Concurrency",
+  		"url": "/npa-documentation/docs/npa/npaJobs.html"
+  	},
+  	{
+  		"point": "npa.documentation.page",
+  		"id": "npa.mail.doc",
+  		"label": "npa.mail - Mail Service",
+  		"category": "NPA Server-side Plugins",
+  		"subcategory": "Integration",
+  		"url": "/npa-documentation/docs/npa/npaMail.html"
+  	},
+  	{
+  		"point": "npa.documentation.page",
+  		"id": "npa.runtime.props.doc",
+  		"label": "npa.runtime.props - Runtime Properties",
+  		"category": "NPA Server-side Plugins",
+  		"subcategory": "Configuration",
+  		"url": "/npa-documentation/docs/npa/npaRuntimeProps.html"
+  	},
+  	{
+  		"point": "npa.documentation.page",
+  		"id": "npa.system.call.doc",
+  		"label": "npa.system.call - OS Process Execution",
+  		"category": "NPA Server-side Plugins",
+  		"subcategory": "Integration",
+  		"url": "/npa-documentation/docs/npa/npaSystemCall.html"
+  	},
+  	{
+  		"point": "npa.documentation.page",
+  		"id": "npa.telemetry.doc",
+  		"label": "npa.telemetry - Telemetry",
+  		"category": "NPA Server-side Plugins",
+  		"subcategory": "Monitoring",
+  		"url": "/npa-documentation/docs/npa/npaTelemetry.html"
+  	},
+  	{
+  		"point": "npa.documentation.page",
+  		"id": "npa.workspace.doc",
+  		"label": "npa.workspace - Filesystem Service",
+  		"category": "NPA Server-side Plugins",
+  		"subcategory": "Filesystem",
+  		"url": "/npa-documentation/docs/npa/npaWorkspace.html"
+  	},
+  	{
+  		"point": "npa.documentation.page",
+  		"id": "npa.rest.doc.plugin",
+  		"label": "npa.rest - REST Client",
+  		"category": "NPA Server-side Plugins",
+  		"subcategory": "External Connectivity",
+  		"url": "/npa-documentation/docs/npa/npaRestPlugin.html"
+  	}
+  ],
+  "provides": [
+  	{"id": "npa.documentation.page"}
+  ]
+}
