@@ -13,9 +13,6 @@
             "args": [],
             "envFile": "${workspaceFolder}\\src\\configs\\configMsi.env",
             "env": {
-<<<<<<< HEAD
-                "NODE_PATH_OLD": "${workspaceFolder}\\src\\node_modules"
-=======
                 "APAF_COUCH_DB_HOST": "127.0.0.1",
                 "APAF_COUCH_DB_USER": "admin",
                 "APAF_COUCH_DB_USER_PASSWD": "admin4couch",
@@ -28,7 +25,6 @@
                 "SMTP_PASSWD": "",
                 "REGISTRY_HOST": "192.168.1.2",
                 "REGISTRY_PORT": "5010"
->>>>>>> b6e64be6be8ef886a9bd7fe3cb134e846be86101
             }
         }
     ]
