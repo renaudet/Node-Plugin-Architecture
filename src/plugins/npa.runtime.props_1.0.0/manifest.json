@@ -5,7 +5,8 @@
   "plugin": "plugin.js",
   "requires": [
   	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
-  	{"type": "plugin","id": "npa.core","version": "1.0.0"}
+  	{"type": "plugin","id": "npa.core","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.event.broker","version": "1.0.0"}
   ],
   "extends": [
   	{

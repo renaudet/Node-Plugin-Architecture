@@ -10,6 +10,7 @@ const APPLICATION_STARTED_STATE = 'application.started';
 var plugin = new Plugin();
 plugin.applications = {};
 plugin.services = {};
+plugin.autostartServices = [];
 plugin.activeApplicationName = null;
 plugin.stateListeners = {};
 plugin.globalState = DEFAULT_GLOBAL_STATE;
@@ -22,6 +23,10 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
 	if('npa.core.service'==extensionPointConfig.point){
 		this.info('registering service '+extensionPointConfig.service+' from extension point '+extensionPointConfig.id);
 		this.services[extensionPointConfig.service] = extenderId;
+		if(extensionPointConfig.autostart===true){
+			this.trace('service '+extensionPointConfig.service+' marked for autostart');
+			this.autostartServices.push(extensionPointConfig.service);
+		}
 	}
 }
 
@@ -41,6 +46,11 @@ plugin.getApplication = function(name){
 
 plugin.startApplication = function(name){
 	this.debug('->startApplication('+name+')');
+	for(var i=0;i<this.autostartServices.length;i++){
+		let serviceName = this.autostartServices[i];
+		this.info('autostarting service "'+serviceName+'"');
+		this.getService(serviceName);
+	}
 	let app = this.getApplication(name);
 	if(app!=null){
 		this.info('Starting application "'+name+'"');

@@ -55,9 +55,8 @@ plugin.registerHandler = function(eventName,handlerId,handlerCallback){
 			handlerCallback(event);
 			plugin.trace('callback invoked successfully!');
 		}catch(t){
-			// automatically un-register
-			plugin.debug('unregistering event handler for "'+eventName+'" due to exception');
-			plugin.unregisterHandler(eventName, handlerId);
+			// log the error but keep the handler registered
+			plugin.debug('error in event handler "'+handlerId+'" for "'+eventName+'": '+t.message);
 		}
 	}
 	this.eventHandlers[handlerId][eventName] = handlerWrapper;

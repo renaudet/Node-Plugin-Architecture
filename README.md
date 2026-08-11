@@ -205,7 +205,7 @@ SSL_CERTIFICATE=/opt/npa/ssl/certificate.pem
 SSL_PRIVATE_KEY=/opt/npa/ssl/private-key.pem
 PORT=9080
 APPLICATION_NAME=NPA Server
-APAF_INSTALLATION=./apafConfig.json
+NPA_SITE_CONFIG=./apafConfig.json
 ```
 
 **Notice** The installation configuration file location variable is wrongly named APAF_INSTALLATION where it should be named NPA_INSTALLATION. This will be fix soon.

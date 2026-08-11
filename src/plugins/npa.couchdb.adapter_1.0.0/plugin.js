@@ -330,8 +330,12 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 			callback(err,null);
 		}else{
 			var datasource = plugin.getDatasource(reference);
+			// MERGE: apply incoming fields on top of the full record read from CouchDB,
+			// so that fields absent from 'data' are preserved rather than lost.
+			// To revert: remove the next line and replace 'merged' with 'data' below (3 occurrences).
+			var merged = Object.assign({}, record, data);
 			var url= plugin.makeBaseUrl(datasource)+'/'+data.id+"?rev="+record._rev;
-			axios.put(url,data)
+			axios.put(url,merged) // MERGE: was axios.put(url,data)
 			.then(function (response) {
 				if(response.data.error){
 					plugin.debug('<-updateRecord() response.data.error');
@@ -340,8 +344,8 @@ plugin.findByPrimaryKey = function(reference,data,callback){
 				}else{
 					plugin.dbTxPerInterval++;
 					plugin.debug('<-updateRecord() success');
-					data._rev = response.data.rev;
-					callback(null,data);
+					merged._rev = response.data.rev; // MERGE: was data._rev
+					callback(null,merged); // MERGE: was callback(null,data)
 				}
 			})
 			.catch(function (error) {

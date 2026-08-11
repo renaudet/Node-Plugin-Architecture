@@ -6,6 +6,7 @@
 const Plugin = require('../../core/plugin.js');
 const moment = require('moment');
 const DATE_TIME_FORMAT = 'YYYY/MM/DD HH:mm:ss';
+const EVENT_BROKER_SERVICE = 'broker';
 
 var plugin = new Plugin();
 /*
@@ -29,6 +30,17 @@ plugin.lazzyPlug = function(extenderId,extensionPointConfig){
     this.trace('<-lazzyPlug()');
 }
 
+plugin.emitRuntimeEvent = function(eventName,data){
+	try{
+		let broker = this.getService(EVENT_BROKER_SERVICE);
+		if(broker){
+			broker.emit({"name": eventName,"source": "npa.runtime.props","data": data});
+		}
+	}catch(e){
+		// event broker may not be present — stay silent
+	}
+}
+
 plugin.newProperty = function(property){
     this.trace('->newProperty()');
     if(property && property.name){
@@ -39,6 +51,7 @@ plugin.newProperty = function(property){
             delete propStruct.point;
             delete propStruct.id;
             this.properties[propStruct.name] = propStruct;
+            this.emitRuntimeEvent('runtime.property.created',propStruct);
             this.trace('<-newProperty()');
             return propStruct;
         }else{
@@ -81,6 +94,7 @@ plugin.setProperty = function(propertyName,value){
             this.debug('new value: '+value);
             propStruct.value = value;
             propStruct.set = moment();
+            this.emitRuntimeEvent('runtime.property.updated',propStruct);
         }
         this.trace('<-setProperty()');
         return propStruct.value;
@@ -97,6 +111,7 @@ plugin.lockProperty = function(propertyName){
         if(!propStruct.locked){
             propStruct.set = moment();
             propStruct.locked = true;
+            this.emitRuntimeEvent('runtime.property.locked',propStruct);
         }
         this.trace('<-lockProperty()');
     }else{

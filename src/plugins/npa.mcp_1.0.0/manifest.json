@@ -1,0 +1,67 @@
+{
+  "id": "npa.mcp",
+  "name": "MCP Server support plugin",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "mcp": {
+    "name": "$MCP_SERVER_NAME,npa-mcp-server",
+    "version": "1.0.0"
+  },
+  "requires": [
+    {"type": "plugin","id": "npa.core","version": "1.0.0"},
+    {"type": "plugin","id": "npa.logging","version": "1.0.0"},
+    {"type": "plugin","id": "npa.http","version": "1.0.0"},
+    {"type": "plugin","id": "npa.telemetry","version": "1.0.0"}
+  ],
+  "extends": [
+    {
+      "point": "npa.log.provider",
+      "id": "npa.mcp.logger",
+      "dir": "npa.mcp"
+    },
+    {
+      "point": "npa.http.router",
+      "id": "npa.mcp.router",
+      "path": "/mcp"
+    },
+    {
+      "point": "npa.http.handler",
+      "id": "npa.mcp.post.handler",
+      "router": "npa.mcp.router",
+      "method": "POST",
+      "schema": "/",
+      "handler": "mcpRequestHandler"
+    },
+    {
+      "point": "npa.http.handler",
+      "id": "npa.mcp.health.handler",
+      "router": "npa.mcp.router",
+      "method": "GET",
+      "schema": "/health",
+      "handler": "mcpHealthHandler"
+    },
+    {
+      "point": "npa.telemetry.dimension.provider",
+      "id": "npa.mcp.invocation.telemetry.provider",
+      "name": "mcp.invocation.count",
+      "displayLabel": "MCP Invocations",
+      "description": "Total number of MCP server invocations",
+      "type": "int",
+      "unit": "",
+      "maxPoints": 60
+    },
+    {
+      "point": "npa.telemetry.dimension.provider",
+      "id": "npa.mcp.concurrent.clients.telemetry.provider",
+      "name": "mcp.concurrent.clients",
+      "displayLabel": "MCP Peak Concurrent Clients",
+      "description": "Peak number of concurrent active MCP clients since last collection",
+      "type": "int",
+      "unit": "",
+      "maxPoints": 60
+    }
+  ],
+  "provides": [
+    {"id": "npa.mcp.tool"}
+  ]
+}
