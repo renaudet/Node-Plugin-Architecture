@@ -3,27 +3,17 @@
     "configurations": [
         {
             "name": "Start the APAF Test Server",
-            "program": "${workspaceFolder}\\src\\app.js",
+            "program": "app.js",
             "request": "launch",
             "skipFiles": [
                 "<node_internals>/**"
             ],
             "type": "node",
             "cwd": "${workspaceFolder}\\src",
-            "args": ["--application","apaf","--logs","C:/tmp/NPA/logs","--level","fine","--port","9090","--name","All Purpose Application Framework"],
+            "args": [],
+            "envFile": "${workspaceFolder}\\src\\configs\\configMsi.env",
             "env": {
-                "APAF_COUCH_DB_HOST": "127.0.0.1",
-                "APAF_COUCH_DB_USER": "admin",
-                "APAF_COUCH_DB_USER_PASSWD": "admin4couch",
-                "NODE_PATH": "${workspaceFolder}\\src\\node_modules",
-                "ENABLE_SSL": false,
-                "PERSIST_HTTP_SESSION": false,
-                "COUCH_DATABASE_PREFIX": "",
-                "WORKSPACE_LOC": "C:/tmp/NPA/workspace",
-                "SMTP_USER": "nicolas.renaudet",
-                "SMTP_PASSWD": "Orange4me!",
-                "REGISTRY_HOST": "192.168.1.2",
-                "REGISTRY_PORT": "5010"
+                "NODE_PATH_OLD": "${workspaceFolder}\\src\\node_modules"
             }
         }
     ]
