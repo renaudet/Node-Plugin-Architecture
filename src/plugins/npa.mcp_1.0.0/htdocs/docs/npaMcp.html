@@ -135,28 +135,36 @@
 			<tr><td><code>boolean</code></td><td><code>z.boolean()</code></td></tr>
 			<tr><td><code>integer</code> / <code>number</code></td><td><code>z.number()</code></td></tr>
 			<tr><td><code>array</code></td><td><code>z.array(z.any())</code></td></tr>
-			<tr><td><code>object</code></td><td><code>z.union([z.record(...), z.string()])</code></td></tr>
+			<tr><td><code>object</code> with <code>properties</code></td><td><code>z.object(...).passthrough()</code></td></tr>
+			<tr><td><code>object</code> without <code>properties</code></td><td><code>z.union([z.record(...), z.string()])</code></td></tr>
 			<tr><td><code>enum</code> values array</td><td><code>z.enum([...])</code></td></tr>
 		</table>
 
 		Fields listed in <code>required</code> are mandatory; all others are <code>.optional()</code>.
 		Fields with a <code>description</code> property have it forwarded to the Zod schema via <code>.describe()</code>,
-		which improves tool discoverability for AI clients.
+		which improves tool discoverability for AI clients. Structured object schemas keep their nested
+		<code>properties</code> and <code>required</code> definitions when converted to Zod.
 
 		<h2>Parameter Routing</h2>
 
-		When using the API-descriptor style, arguments passed by the AI client are automatically routed
-		to the handler's <code>req</code> object based on their declaration in the <code>apidoc</code>:
+		When using the API-descriptor style, arguments passed by the AI client are grouped into explicit
+		top-level sections before being routed to the handler's <code>req</code> object:
 
 		<ul>
-			<li>Parameters with <code>"in": "path"</code> → <code>req.params</code></li>
-			<li>Parameters with <code>"in": "query"</code> → <code>req.query</code></li>
-			<li>All <code>requestBody</code> fields → <code>req.body</code></li>
+			<li>Path parameters declared with <code>"in": "path"</code> are grouped under <code>params</code> and forwarded to <code>req.params</code></li>
+			<li>Query parameters declared with <code>"in": "query"</code> are grouped under <code>query</code> and forwarded to <code>req.query</code></li>
+			<li>The HTTP <code>requestBody</code> schema is exposed under a top-level <code>body</code> object and forwarded to <code>req.body</code></li>
 		</ul>
 
-		Special case: if the entire body consists of a single field named <code>data</code> of type
-		<code>object</code>, it is unwrapped and spread directly into <code>req.body</code> — to support
-		handlers that accept a dynamic payload.
+		For example, a handler with one path parameter and a JSON request body is exposed to MCP clients
+		with an input payload shaped like:
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"params"</span>: { <span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"123"</span> },<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"body"</span>: { <span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"example"</span> }<br>
+		&nbsp;4.&nbsp;}
+		</div>
 
 		<h2>Telemetry</h2>
 

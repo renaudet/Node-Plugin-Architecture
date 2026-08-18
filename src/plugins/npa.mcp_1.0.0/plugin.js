@@ -73,7 +73,11 @@ plugin.buildZodSchema = function(properties, required) {
 		} else if (def.type === 'array') {
 			field = z.array(z.any());
 		} else if (def.type === 'object') {
-			field = z.union([z.record(z.string(), z.any()), z.string()]);
+			if (def.properties) {
+				field = z.object(plugin.buildZodSchema(def.properties, def.required || [])).passthrough();
+			} else {
+				field = z.union([z.record(z.string(), z.any()), z.string()]);
+			}
 		} else {
 			field = z.string();
 		}
@@ -96,84 +100,58 @@ plugin.buildZodSchema = function(properties, required) {
 plugin.buildApiRegistrar = function(extenderId,extensionConfig) {
 	plugin.debug('->buildApiRegistrar(' + extensionConfig.id + ')');
 	let apidoc = extensionConfig.apidoc;
-	// Extract the first path + operation from the OpenAPI descriptor
 	let path = Object.keys(apidoc.paths)[0];
 	let pathDef = apidoc.paths[path];
-	let method = Object.keys(pathDef)[0]; // post, get, put, delete...
+	let method = Object.keys(pathDef)[0];
 	let operation = pathDef[method];
 	let toolName = operation.operationId;
 	let toolDescription = operation.description || operation.summary;
-	// Build zodShape from both path/query parameters AND requestBody (merged)
-	let props = {};
-	let required = [];
+	let paramsProperties = {};
+	let paramsRequired = [];
+	let queryProperties = {};
+	let queryRequired = [];
+	let bodySchema = null;
 	if (operation.parameters) {
 		for (let param of operation.parameters) {
-			props[param.name] = param.schema || { type: 'string' };
-			if (param.description) props[param.name].description = param.description;
-			if (param.required) required.push(param.name);
+			let targetProps = param.in === 'query' ? queryProperties : paramsProperties;
+			let targetRequired = param.in === 'query' ? queryRequired : paramsRequired;
+			targetProps[param.name] = param.schema || { type: 'string' };
+			if (param.description) targetProps[param.name].description = param.description;
+			if (param.required) targetRequired.push(param.name);
 		}
 	}
 	if (operation.requestBody) {
-		let schema = operation.requestBody.content['application/json'].schema;
-		Object.assign(props, schema.properties || {});
-		if (schema.required) required = required.concat(schema.required);
+		bodySchema = operation.requestBody.content['application/json'].schema || { type: 'object' };
 	}
-	let zodShape = plugin.buildZodSchema(props, required);
-
-	// Pre-compute which parameter names go to params/query vs body
-	let pathParamNames = new Set();
-	let queryParamNames = new Set();
-	if (operation.parameters) {
-		for (let param of operation.parameters) {
-			if (param.in === 'path') pathParamNames.add(param.name);
-			else if (param.in === 'query') queryParamNames.add(param.name);
-		}
+	let topLevelProps = {};
+	let topLevelRequired = [];
+	if (Object.keys(paramsProperties).length > 0) {
+		topLevelProps.params = { type: 'object', properties: paramsProperties, additionalProperties: false };
+		if (paramsRequired.length > 0) topLevelProps.params.required = paramsRequired;
+		if (paramsRequired.length > 0) topLevelRequired.push('params');
 	}
-
+	if (Object.keys(queryProperties).length > 0) {
+		topLevelProps.query = { type: 'object', properties: queryProperties, additionalProperties: false };
+		if (queryRequired.length > 0) topLevelProps.query.required = queryRequired;
+	}
+	if (bodySchema) {
+		topLevelProps.body = bodySchema;
+		if (operation.requestBody.required) topLevelRequired.push('body');
+	}
+	plugin.debug('registered MCP tool schema for ' + toolName + ' - sections=' + JSON.stringify(Object.keys(topLevelProps)) + ' required=' + JSON.stringify(topLevelRequired));
+	plugin.trace('registered MCP tool schema payload for ' + toolName + ': ' + JSON.stringify(topLevelProps, null, '\t'));
+	let zodShape = plugin.buildZodSchema(topLevelProps, topLevelRequired);
 	plugin.debug('<-buildApiRegistrar()');
 	return function(server, httpReq) {
 		server.tool(toolName, toolDescription, zodShape, async (args) => {
 			return new Promise((resolve) => {
-				// Récupérer le plugin contributeur via le runtime
+				plugin.debug('incoming MCP tool invocation: ' + toolName);
+				plugin.trace('incoming MCP tool payload for ' + toolName + ': ' + JSON.stringify(args, null, '\t'));
 				let contributorPlugin = plugin.runtime.getPlugin(extenderId);
 				let handlerFn = contributorPlugin[extensionConfig.handler];
-
-				// Dissocier les arguments selon leur rôle déclaré dans l'apidoc :
-				// - path params  → req.params
-				// - query params → req.query
-				// - le reste     → req.body
-				// Cas spécial : si le body contient un unique champ "data" de type objet,
-				// on l'étale directement comme req.body pour les handlers à body dynamique.
-				// Les headers HTTP de la requête MCP originale sont propagés
-				// pour permettre la vérification de sécurité (x-api-key, Authorization...)
-				let params = {};
-				let query = {};
-				let body = {};
-				for (let [key, value] of Object.entries(args)) {
-					if (pathParamNames.has(key)) params[key] = value;
-					else if (queryParamNames.has(key)) query[key] = value;
-					else {
-						// If a field declared as 'object' in apidoc arrives as a JSON string
-						// (possibly double-encoded by the MCP SDK), unwrap until we get an object
-						if (typeof value === 'string' && props[key] && props[key].type === 'object') {
-							let candidate = value.trim();
-							// The MCP SDK may append a spurious trailing character — try parsing,
-							// and if it fails strip one trailing char and retry (up to 3 times)
-							let parsed = null;
-							for (let trim = 0; trim <= 3; trim++) {
-								try {
-									parsed = JSON.parse(candidate.slice(0, candidate.length - trim || undefined));
-									break;
-								} catch(e) { /* try next */ }
-							}
-							if (typeof parsed === 'object' && parsed !== null) value = parsed;
-						}
-						body[key] = value;
-					}
-				}
-				if (Object.keys(body).length === 1 && typeof body.data === 'object' && body.data !== null) {
-					body = body.data;
-				}
+				let params = args.params && typeof args.params === 'object' ? args.params : {};
+				let query = args.query && typeof args.query === 'object' ? args.query : {};
+				let body = args.body && typeof args.body === 'object' ? args.body : {};
 				let fakeReq = { body, headers: httpReq ? httpReq.headers : {}, params, query };
 				let fakeRes = {
 						json: (obj) => resolve({
