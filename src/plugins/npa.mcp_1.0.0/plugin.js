@@ -66,6 +66,9 @@ plugin.buildZodSchema = function(properties, required) {
 		let field;
 		if (def.enum) {
 			field = z.enum(def.enum);
+		} else if (def.anyOf) {
+			// anyOf with object/string alternatives — treat as a free-form object
+			field = z.union([z.record(z.string(), z.any()), z.string()]);
 		} else if (def.type === 'boolean') {
 			field = z.boolean();
 		} else if (def.type === 'integer' || def.type === 'number') {
@@ -150,8 +153,15 @@ plugin.buildApiRegistrar = function(extenderId,extensionConfig) {
 				let contributorPlugin = plugin.runtime.getPlugin(extenderId);
 				let handlerFn = contributorPlugin[extensionConfig.handler];
 				let params = args.params && typeof args.params === 'object' ? args.params : {};
-				let query = args.query && typeof args.query === 'object' ? args.query : {};
-				let body = args.body && typeof args.body === 'object' ? args.body : {};
+					let query = args.query && typeof args.query === 'object' ? args.query : {};
+					let body = {};
+					if(args.body){
+						if(typeof args.body === 'object'){
+							body = args.body;
+						}else if(typeof args.body === 'string'){
+							try{ body = JSON.parse(args.body); }catch(e){ body = {}; }
+						}
+					}
 				let fakeReq = { body, headers: httpReq ? httpReq.headers : {}, params, query };
 				let fakeRes = {
 						json: (obj) => resolve({
