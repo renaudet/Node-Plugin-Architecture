@@ -175,6 +175,11 @@ plugin.getProject = function(name){
 	let path = this.location+'/'+name;
 	if(fs.existsSync(path)){
 		let configPath = path+'/'+PROJECT_CONF_FILE_NAME;
+		if(!fs.existsSync(configPath)){
+			this.debug('getProject: no .project file found in '+path+' - skipping');
+			this.trace('<-getProject()');
+			return null;
+		}
 		let buffer = fs.readFileSync(configPath,{"encoding": "utf-8"});
 		let json = buffer.toString();
 		this.trace('<-getProject()');
