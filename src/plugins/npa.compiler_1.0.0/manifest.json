@@ -1,0 +1,24 @@
+{
+  "id": "npa.compiler",
+  "name": "Generic rule-based compiler and execution engine for NPA",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.core","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.compiler.logger",
+  		"dir": "npa.compiler"
+  	},
+  	{
+  		"point": "npa.core.service",
+  		"id": "npa.compiler.service",
+  		"service": "compiler"
+  	}
+  ],
+  "provides": [
+  ]
+}
