@@ -68,12 +68,10 @@ class ExecutionEngine extends Logger{
 			if(this.haltFlagRaised){
 				this.error('execution aborted!');
 				this.error('cause: '+this.haltMsg);
-			}else if(this._pendingCallbacks===0){
-				// No async callbacks in flight — safe to reset immediately
-				this.reset();
 			}
-			// If _pendingCallbacks > 0, reset() will be called by _onCallbackDone()
-			// once the last callback has fired.
+			// Note: reset() is NOT called here — the caller (ExecutionEngine#execute via
+			// npa.compiler) reads memorySpace after process() returns, then calls reset().
+			// For async built-ins, _onCallbackDone() still handles the deferred reset.
 		}else{
 			this.error('unknown source type "'+executionUnit.grammar.name+'"');
 		}

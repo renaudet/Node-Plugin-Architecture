@@ -49,16 +49,20 @@ plugin.compile = function(source, grammarConfig){
 /*
  * Execute a previously compiled ExecutionUnit.
  *
- * @param {ExecutionUnit} eu         - the compiled execution unit (result of compile())
- * @param {object}        builtins   - map of built-in functions to expose to the program.
- *                                     Each entry is either:
- *                                       { name: fn }                       for a sync built-in
- *                                       { name: { fn: fn, async: true } }  for an async built-in
+ * @param {ExecutionUnit} eu           - the compiled execution unit (result of compile())
+ * @param {object}        builtins     - map of built-in functions to expose to the program.
+ *                                       Each entry is either:
+ *                                         { name: fn }                       for a sync built-in
+ *                                         { name: { fn: fn, async: true } }  for an async built-in
  * @param {object}        enginePlugin - the language runtime plugin instance
  *                                       (must implement process(), callFunction(), halt())
- * @returns {{ success: boolean, error: string|null }}
+ * @param {object}        [context]    - optional map of variable name → initial value to
+ *                                       pre-store in the engine memory space before execution.
+ *                                       These become top-level variables accessible by name
+ *                                       in the script (e.g. { request: reqObj, response: {} }).
+ * @returns {{ success: boolean, error: string|null, memorySpace: object }}
  */
-plugin.execute = function(eu, builtins, enginePlugin){
+plugin.execute = function(eu, builtins, enginePlugin, context){
 	this.trace('->npa.compiler#execute()');
 	let engine = new ExecutionEngine({ logging: this._npaLoggerConfig() });
 	engine.registerPlugin(enginePlugin);
@@ -72,13 +76,25 @@ plugin.execute = function(eu, builtins, enginePlugin){
 			}
 		}
 	}
+	if(context){
+		for(var varName in context){
+			engine.sto(varName, context[varName]);
+		}
+	}
 	engine.process(eu);
+	// Capture the memory space BEFORE reset() clears it.
+	// For sync execution (_pendingCallbacks === 0), reset() was not called inside process()
+	// so memorySpace still contains all variable values here.
+	let snapshot = Object.assign({}, engine.memorySpace);
+	if(engine._pendingCallbacks === 0){
+		engine.reset();
+	}
 	let result;
 	if(engine.haltFlagRaised){
 		this.error('npa.compiler#execute() - execution halted: '+engine.haltMsg);
-		result = { success: false, error: engine.haltMsg };
+		result = { success: false, error: engine.haltMsg, memorySpace: snapshot };
 	}else{
-		result = { success: true, error: null };
+		result = { success: true, error: null, memorySpace: snapshot };
 	}
 	this.trace('<-npa.compiler#execute()');
 	return result;
@@ -91,16 +107,17 @@ plugin.execute = function(eu, builtins, enginePlugin){
  * @param {object}  grammarConfig - a full grammar configuration object
  * @param {object}  builtins      - map of built-in functions (see execute())
  * @param {object}  enginePlugin  - the language runtime plugin instance
- * @returns {{ success: boolean, error: string|null }}
+ * @param {object}  [context]     - optional initial variable context (see execute())
+ * @returns {{ success: boolean, error: string|null, memorySpace: object }}
  */
-plugin.run = function(source, grammarConfig, builtins, enginePlugin){
+plugin.run = function(source, grammarConfig, builtins, enginePlugin, context){
 	this.trace('->npa.compiler#run()');
 	let eu = this.compile(source, grammarConfig);
 	if(!eu){
 		this.trace('<-npa.compiler#run() - compilation failed');
-		return { success: false, error: 'compilation failed' };
+		return { success: false, error: 'compilation failed', memorySpace: {} };
 	}
-	let result = this.execute(eu, builtins, enginePlugin);
+	let result = this.execute(eu, builtins, enginePlugin, context);
 	this.trace('<-npa.compiler#run()');
 	return result;
 };
