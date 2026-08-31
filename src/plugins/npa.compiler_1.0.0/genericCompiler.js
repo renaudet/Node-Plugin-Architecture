@@ -374,7 +374,7 @@ class GenericTokenEvaluationRule extends GenericSyntaxRule{
 		this.debug('->GenericTokenEvaluationRule#assess() name='+this.getName());
 		this.trace('beginIndex = '+beginIndex);
 		this.trace('config = '+JSON.stringify(this.config));
-		let returnStatus = {"status": CHECK_RESULT_FAILURE,"next": beginIndex};
+		let returnStatus = {"status": CHECK_RESULT_FAILURE,"next": beginIndex,"depth": 0};
 		if(beginIndex<tokenList.length){
 			let currentToken = tokenList[beginIndex];
 			this.trace('current token: '+currentToken);
@@ -384,6 +384,7 @@ class GenericTokenEvaluationRule extends GenericSyntaxRule{
 						this.trace('expected value matches!');
 						returnStatus.status=CHECK_RESULT_SUCCESS;
 						returnStatus.next = beginIndex+1;
+						returnStatus.depth = 1;
 						returnStatus.executionUnit = new ExecutionUnit(this.analyzer.getLoggerConfig(),currentToken.type);
 						returnStatus.executionUnit.token = currentToken;
 						returnStatus.executionUnit.value = currentToken.getValue()
@@ -391,17 +392,18 @@ class GenericTokenEvaluationRule extends GenericSyntaxRule{
 				}else{
 					returnStatus.status=CHECK_RESULT_SUCCESS;
 					returnStatus.next = beginIndex+1;
+					returnStatus.depth = 1;
 					returnStatus.executionUnit = new ExecutionUnit(this.analyzer.getLoggerConfig(),currentToken.type);
 					returnStatus.executionUnit.token = currentToken;
 					returnStatus.executionUnit.value = currentToken.getValue();
 				}
 			}
 			if(returnStatus.status==CHECK_RESULT_FAILURE){
-				returnStatus.message = 'not a valid '+this.config.name;
+				returnStatus.message = 'not a valid '+this.config.name+' at line '+currentToken.line+', col '+currentToken.char+' (found: "'+currentToken.getValue()+'")';
 			}
 		}else{
 			this.debug('end of token list detected!');
-			returnStatus.message = 'premature end of file detected';
+			returnStatus.message = 'unexpected end of file (expected '+this.config.name+(this.config.value?' "'+this.config.value+'"':'')+')';
 		}
 		this.debug('<-GenericTokenEvaluationRule#assess() - status is '+returnStatus.status);
 		return returnStatus;
@@ -419,12 +421,13 @@ class GenericAndRule extends GenericSyntaxRule{
 		this.debug('->GenericAndRule#assess()');
 		this.trace('tokenList.length = '+tokenList.length);
 		this.trace('beginIndex = '+beginIndex);
-		let returnStatus = {"status": CHECK_RESULT_SUCCESS,"next": beginIndex};
+		let returnStatus = {"status": CHECK_RESULT_SUCCESS,"next": beginIndex,"depth": 0};
 		let evaluationResult = true;
 		let innerRules = this.config.value['$and'];
 		let currentTokenIndex = beginIndex;
 		let innerRuleIndex = 0;
 		let subEUs = [];
+		let accumulatedDepth = 0;
 		this.trace('found '+innerRules.length+' inner rules to assess');
 		while(evaluationResult && innerRuleIndex<innerRules.length){
 			let currentRuleConfig = innerRules[innerRuleIndex];
@@ -434,11 +437,14 @@ class GenericAndRule extends GenericSyntaxRule{
 			if(CHECK_RESULT_SUCCESS==ruleAnalysisResult.status){
 				currentTokenIndex = ruleAnalysisResult.next;
 				returnStatus.next = currentTokenIndex;
+				accumulatedDepth += (ruleAnalysisResult.depth||0);
 				subEUs.push(ruleAnalysisResult.executionUnit);
 			}else{
 				evaluationResult = false;
 				returnStatus.status = CHECK_RESULT_FAILURE;
 				returnStatus.message = ruleAnalysisResult.message;
+				// depth = tokens already validated before this failure + depth of the failing sub-rule
+				returnStatus.depth = accumulatedDepth + (ruleAnalysisResult.depth||0);
 				currentTokenIndex = beginIndex;
 				returnStatus.next = currentTokenIndex;
 				this.debug('evaluation failure detected!');
@@ -446,6 +452,7 @@ class GenericAndRule extends GenericSyntaxRule{
 			innerRuleIndex++;
 		}
 		if(CHECK_RESULT_SUCCESS==returnStatus.status){
+			returnStatus.depth = accumulatedDepth;
 			let executionUnit = new ExecutionUnit(this.analyzer.getLoggerConfig(),this.getName());
 			executionUnit.token = tokenList[beginIndex];
 			executionUnit.next = subEUs;
@@ -474,11 +481,11 @@ class GenericOrRule extends GenericSyntaxRule{
 	assess(tokenList,beginIndex){
 		this.debug('->GenericOrRule#assess()');
 		this.trace('beginIndex = '+beginIndex);
-		let returnStatus = {"status": CHECK_RESULT_FAILURE,"next": beginIndex};
+		let returnStatus = {"status": CHECK_RESULT_FAILURE,"next": beginIndex,"depth": 0};
 		let evaluationResult = false;
 		let innerRules = this.config.value['$or'];
 		let innerRuleIndex = 0;
-		let messageStack = [];
+		let bestFailure = null;
 		while(!evaluationResult && innerRuleIndex<innerRules.length){
 			let currentRuleConfig = innerRules[innerRuleIndex];
 			this.trace(this.getName()+' - evaluating inner rule type <'+currentRuleConfig.type+'>');
@@ -487,21 +494,22 @@ class GenericOrRule extends GenericSyntaxRule{
 			if(CHECK_RESULT_SUCCESS==ruleAnalysisResult.status){
 				returnStatus.status = CHECK_RESULT_SUCCESS;
 				returnStatus.next = ruleAnalysisResult.next;
+				returnStatus.depth = ruleAnalysisResult.depth||0;
 				returnStatus.executionUnit = ruleAnalysisResult.executionUnit;
 				returnStatus.executionUnit.token = tokenList[beginIndex];
 				evaluationResult = true;
 			}else{
-				messageStack.push(ruleAnalysisResult.message);
+				// keep track of the deepest failure (most tokens consumed before failing)
+				let failureDepth = ruleAnalysisResult.depth||0;
+				if(bestFailure===null || failureDepth>bestFailure.depth){
+					bestFailure = {"message": ruleAnalysisResult.message,"depth": failureDepth};
+				}
 			}
 			innerRuleIndex++;
 		}
-		if(CHECK_RESULT_FAILURE==returnStatus.status){
-			let stackTrace = '';
-			for(var i=0;i<messageStack.length;i++){
-				stackTrace += messageStack[i];
-				if(i<messageStack.length-1){ stackTrace += ' / '; }
-			}
-			returnStatus.message = stackTrace;
+		if(CHECK_RESULT_FAILURE==returnStatus.status && bestFailure!==null){
+			returnStatus.message = bestFailure.message;
+			returnStatus.depth = bestFailure.depth;
 		}
 		this.debug('<-GenericOrRule#assess()');
 		return returnStatus;
@@ -536,7 +544,7 @@ class GenericRuleReferenceRule extends GenericSyntaxRule{
 			let message = 'syntax rule "'+this.config.name+'" not found!';
 			this.error(message);
 			this.debug('<-GenericRuleReferenceRule#assess()');
-			return {"status": CHECK_RESULT_FAILURE,"next": beginIndex,"message": message};
+			return {"status": CHECK_RESULT_FAILURE,"next": beginIndex,"depth": 0,"message": message};
 		}
 	}
 	dumpRule(){ return this.config.name; }
@@ -652,7 +660,7 @@ class GenericSyntaxAnalyzer extends Logger{
 				validationContext.executionUnit = validationResult.executionUnit;
 				validationContext.executionUnit.grammar = this.config.grammar;
 			}else{
-				validationContext.comments = JSON.stringify(validationResult);
+				validationContext.comments = validationResult.message||JSON.stringify(validationResult);
 			}
 		}else{
 			validationContext.comments = 'unknown root validation rule "'+this.config.grammar.rootRule+'"';
