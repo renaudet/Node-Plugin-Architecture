@@ -41,9 +41,11 @@ plugin.compile = function(source, grammarConfig){
 	let eu = compiler.compile(source);
 	if(!eu){
 		this.error('npa.compiler#compile() - compilation failed for grammar "'+grammarConfig.grammar.name+'"');
+		this.trace('<-npa.compiler#compile() - failure');
+		return { eu: null, error: compiler.lastError || 'compilation failed' };
 	}
 	this.trace('<-npa.compiler#compile()');
-	return eu;
+	return { eu: eu, error: null };
 };
 
 /*
@@ -112,12 +114,12 @@ plugin.execute = function(eu, builtins, enginePlugin, context){
  */
 plugin.run = function(source, grammarConfig, builtins, enginePlugin, context){
 	this.trace('->npa.compiler#run()');
-	let eu = this.compile(source, grammarConfig);
-	if(!eu){
+	let compileResult = this.compile(source, grammarConfig);
+	if(!compileResult.eu){
 		this.trace('<-npa.compiler#run() - compilation failed');
-		return { success: false, error: 'compilation failed', memorySpace: {} };
+		return { success: false, error: compileResult.error, memorySpace: {} };
 	}
-	let result = this.execute(eu, builtins, enginePlugin, context);
+	let result = this.execute(compileResult.eu, builtins, enginePlugin, context);
 	this.trace('<-npa.compiler#run()');
 	return result;
 };

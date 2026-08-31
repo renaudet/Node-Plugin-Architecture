@@ -718,6 +718,7 @@ class GenericCompiler extends Logger{
 	config = null;
 	tokenizer = null;
 	analyzer = null;
+	lastError = null;
 	constructor(configuration){
 		super(configuration.logging);
 		this.config = configuration;
@@ -734,6 +735,7 @@ class GenericCompiler extends Logger{
 	compile(inputSource){
 		this.debug('->GenericCompiler#compile()');
 		this.trace('inputSource length: '+inputSource.length);
+		this.lastError = null;
 		let tokens = this.tokenizer.tokenize(inputSource);
 		this.debug('tokenizer returned '+tokens.length+' tokens');
 		this.dumpCompilationToken(tokens);
@@ -744,12 +746,14 @@ class GenericCompiler extends Logger{
 				this.debug('<-GenericCompiler#compile()');
 				return validationContext.executionUnit;
 			}else{
+				this.lastError = validationContext.comments;
 				this.error('syntax analysis completed with error!');
 				this.error(validationContext.comments);
 				this.debug('<-GenericCompiler#compile()');
 				return null;
 			}
 		}else{
+			this.lastError = this.tokenizer.status.message;
 			this.error('pre-compilation error detected!');
 			this.error(this.tokenizer.status.message);
 			this.debug('<-GenericCompiler#compile()');
