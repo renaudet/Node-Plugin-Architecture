@@ -596,7 +596,7 @@ class GenericSyntaxRuleValidator extends Logger{
 		let rootSyntaxRuleConfig = this.config.rule.definition;
 		let rootSyntaxRuleAnalyzer = syntaxRuleFactory.getRule(rootSyntaxRuleConfig,this.syntaxAnalyzer);
 		formattedRule += rootSyntaxRuleAnalyzer.dumpRule();
-		this.info(formattedRule);
+		this.debug(formattedRule);
 	}
 }
 
@@ -616,7 +616,7 @@ class EOFRuleValidator extends GenericSyntaxRuleValidator {
 		this.debug('<-EOFRuleValidator#validate() - status is '+returnStatus.status);
 		return returnStatus;
 	}
-	dumpRule(){ this.info('EOF ::= <end-of-file>'); }
+	dumpRule(){ this.debug('EOF ::= <end-of-file>'); }
 }
 
 class GenericSyntaxAnalyzer extends Logger{
@@ -670,7 +670,7 @@ class GenericSyntaxAnalyzer extends Logger{
 	}
 	dumpSyntaxRules(){
 		this.debug('->GenericSyntaxAnalyzer#dumpSyntaxRules()');
-		this.info('Grammar:');
+		this.debug('Grammar:');
 		for(var ruleName in this.rules){
 			let ruleValidator = this.rules[ruleName];
 			ruleValidator.dumpRule();
@@ -726,7 +726,7 @@ class GenericCompiler extends Logger{
 	}
 	initializeEngine(){
 		this.debug('->GenericCompiler#initializeEngine()');
-		this.info('loading grammar "'+this.config.grammar.name+'" v'+this.config.grammar.version);
+		this.debug('loading grammar "'+this.config.grammar.name+'" v'+this.config.grammar.version);
 		this.tokenizer = new Tokenizer({"rules": this.config.engineConfig.tokenizationRules,"logging": this.config.logging});
 		this.analyzer = new GenericSyntaxAnalyzer({"rules": this.config.engineConfig.compilationRules,"logging": this.config.logging,"grammar": this.config.grammar});
 		this.dumpSyntaxRules();
@@ -742,7 +742,7 @@ class GenericCompiler extends Logger{
 		if(this.tokenizer.status.returnCode==0){
 			let validationContext = this.analyzer.validate(tokens);
 			if(validationContext.isValid){
-				this.info('syntax analysis completed successfully!');
+				this.debug('syntax analysis completed successfully!');
 				this.debug('<-GenericCompiler#compile()');
 				return validationContext.executionUnit;
 			}else{
