@@ -11,7 +11,8 @@
     {"type": "plugin","id": "npa.core","version": "1.0.0"},
     {"type": "plugin","id": "npa.logging","version": "1.0.0"},
     {"type": "plugin","id": "npa.http","version": "1.0.0"},
-    {"type": "plugin","id": "npa.telemetry","version": "1.0.0"}
+    {"type": "plugin","id": "npa.telemetry","version": "1.0.0"},
+    {"type": "plugin","id": "npa.documentation","version": "1.0.0"}
   ],
   "extends": [
     {
