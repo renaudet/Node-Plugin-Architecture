@@ -1,0 +1,133 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - npa.compiler plugin">
+		<meta name="Author" lang="en" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>npa.compiler - Generic Compiler Plugin</title>
+	</head>
+	<body>
+
+		<h1>npa.compiler &mdash; Generic Compiler Plugin</h1>
+
+		<h2>Overview</h2>
+
+		The <b>npa.compiler</b> plugin provides a fully data-driven, rule-based compiler and execution
+		engine for NPA. It exposes a <b>compiler</b> service that any plugin can consume to parse and
+		execute custom languages without writing tokenizer or parser code from scratch.<br>
+		<br>
+		The pipeline consists of three stages:
+		<ul>
+			<li><b>Tokenizer</b> — splits the source into a flat token list according to the tokenization rules of the grammar configuration</li>
+			<li><b>Syntax analyser</b> — validates the token list against the compilation rules and produces an <b>ExecutionUnit</b> tree</li>
+			<li><b>Execution engine</b> — walks the ExecutionUnit tree and delegates each node to the language runtime plugin</li>
+		</ul>
+		The grammar itself (tokenization rules, compilation rules, root rule) is a plain JSON configuration
+		object that is passed at runtime. Swapping that configuration object changes the language without
+		modifying any JavaScript.
+
+		<h2>Service registration</h2>
+
+		<code>npa.compiler</code> registers itself as the <code>compiler</code> NPA service via the
+		<code>npa.core.service</code> extension point. Consumer plugins obtain a reference with:
+
+		<div class="code">
+		&nbsp;1.&nbsp;<span style="color:#888;">// inside plugin.js</span><br>
+		&nbsp;2.&nbsp;let compilerService = this.getService(<span style="color:#3469e3;">'compiler'</span>);
+		</div>
+
+		The manifest dependency is:
+
+		<div class="code">
+		&nbsp;1.&nbsp;{ <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"plugin"</span>, <span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"npa.compiler"</span>, <span style="color:#3469e3;">"version"</span>: <span style="color:#3469e3;">"1.0.0"</span> }
+		</div>
+
+		<h2>API Reference</h2>
+
+		<h3><code>compile(source, grammarConfig)</code></h3>
+
+		Tokenizes and parses <code>source</code> according to the grammar described in
+		<code>grammarConfig</code>. Returns an object with two fields:
+
+		<table>
+			<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+			<tr><td><code>eu</code></td><td><code>ExecutionUnit | null</code></td><td>Root of the compiled execution tree. <code>null</code> if compilation failed.</td></tr>
+			<tr><td><code>error</code></td><td><code>string | null</code></td><td>Error message if compilation failed, <code>null</code> on success.</td></tr>
+		</table>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let result = compilerService.compile(source, grammarConfig);<br>
+		&nbsp;2.&nbsp;if (!result.eu) {<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;console.error(result.error);<br>
+		&nbsp;4.&nbsp;}
+		</div>
+
+		<h3><code>execute(eu, builtins, enginePlugin, context)</code></h3>
+
+		Executes a previously compiled ExecutionUnit tree. Returns an object with three fields:
+
+		<table>
+			<tr><th>Field</th><th>Type</th><th>Description</th></tr>
+			<tr><td><code>success</code></td><td><code>boolean</code></td><td><code>true</code> if execution completed without raising a halt flag.</td></tr>
+			<tr><td><code>error</code></td><td><code>string | null</code></td><td>Halt message if execution failed, <code>null</code> on success.</td></tr>
+			<tr><td><code>memorySpace</code></td><td><code>object</code></td><td>Snapshot of all top-level variables after execution.</td></tr>
+		</table>
+
+		<b>Parameters:</b>
+		<table>
+			<tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+			<tr><td><code>eu</code></td><td><code>ExecutionUnit</code></td><td>Root execution unit returned by <code>compile()</code>.</td></tr>
+			<tr><td><code>builtins</code></td><td><code>object</code></td><td>Map of native JS functions to expose to the script. Each value is either a plain <code>function</code> (sync) or <code>{ fn, async: true }</code> (async).</td></tr>
+			<tr><td><code>enginePlugin</code></td><td><code>object</code></td><td>Language runtime plugin that handles each ExecutionUnit node type. Must implement <code>process(eu, engine)</code>, <code>callFunction(name, args, engine)</code> and <code>halt(msg, engine)</code>.</td></tr>
+			<tr><td><code>context</code></td><td><code>object</code></td><td><i>Optional.</i> Map of variable name → initial value pre-loaded into the engine memory space before execution starts.</td></tr>
+		</table>
+
+		<div class="code">
+		&nbsp;1.&nbsp;let result = compilerService.execute(<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;compiledEu,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;{ print: (txt) =&gt; console.log(txt) },<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;myLanguagePlugin,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;{ request: req, response: {} }<br>
+		&nbsp;6.&nbsp;);<br>
+		&nbsp;7.&nbsp;if (result.success) {<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;let output = result.memorySpace.response;<br>
+		&nbsp;9.&nbsp;}
+		</div>
+
+		<h3><code>run(source, grammarConfig, builtins, enginePlugin, context)</code></h3>
+
+		Convenience method that calls <code>compile()</code> then <code>execute()</code> in a single
+		step. Returns the same object as <code>execute()</code>. If compilation fails, returns
+		<code>{ success: false, error: &lt;message&gt;, memorySpace: {} }</code>.
+
+		<div class="code">
+		&nbsp;1.&nbsp;let result = compilerService.run(<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;source,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;grammarConfig,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;builtins,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;myLanguagePlugin<br>
+		&nbsp;6.&nbsp;);
+		</div>
+
+		<h2>Logging</h2>
+
+		All compiler and engine trace, debug, info, warning and error output is routed through the
+		NPA logging service. The plugin registers its log directory under <code>npa.compiler</code>.
+		Set the log level for this directory to <code>trace</code> or <code>debug</code> in the
+		site configuration to obtain detailed compilation and execution traces.
+
+		<h2>Related documentation</h2>
+
+		<ul>
+			<li>See <b>Grammar Development Guide</b> for the full grammar configuration reference and how to author a new language.</li>
+			<li>See <b>Execution Engine Development Guide</b> for the ExecutionUnit node API, the EuReader navigation helper, and how to write a language runtime plugin.</li>
+		</ul>
+
+	</body>
+</html>

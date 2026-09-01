@@ -1,0 +1,216 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - Generic Compiler Grammar Development Guide">
+		<meta name="Author" lang="en" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>Grammar Development Guide</title>
+	</head>
+	<body>
+
+		<h1>Grammar Development Guide</h1>
+
+		<h2>Overview</h2>
+
+		The generic compiler is fully data-driven: the language it parses is described in a plain JSON
+		<b>grammar configuration</b> object. No JavaScript modifications are needed to define a new
+		language or extend an existing one &mdash; only the configuration changes.<br>
+		<br>
+		A grammar configuration has three top-level sections:
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"grammar"</span>:      { <span style="color:#888;">/* language identity */</span> },<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"engineConfig"</span>: { <span style="color:#888;">/* tokenization + compilation rules */</span> },<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"logging"</span>:      { <span style="color:#888;">/* log level */</span> }<br>
+		&nbsp;5.&nbsp;}
+		</div>
+
+		<h2>The <code>grammar</code> section</h2>
+
+		Identifies the language. The <code>rootRule</code> names the compilation rule that matches the
+		top-level program structure.
+
+		<div class="code">
+		&nbsp;1.&nbsp;<span style="color:#3469e3;">"grammar"</span>: {<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"name"</span>:     <span style="color:#3469e3;">"MY_LANG"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"version"</span>:  <span style="color:#3469e3;">"1.0.0"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"rootRule"</span>: <span style="color:#3469e3;">"INSTRUCTION_SEQUENCE"</span><br>
+		&nbsp;5.&nbsp;}
+		</div>
+
+		<h2>The <code>engineConfig</code> section</h2>
+
+		Contains two arrays: <code>tokenizationRules</code> and <code>compilationRules</code>.
+		It may also contain an <code>input</code> sub-object for tokenizer configuration (e.g.
+		comment patterns, whitespace handling).
+
+		<h2>Tokenization rules</h2>
+
+		The tokenizer reads the source left-to-right, attempting to match each character position
+		against the declared rules. The rule with the highest <b>priority</b> wins when multiple
+		rules can start with the same character. Three rule types are available:
+
+		<h3>FIXED_CHAR</h3>
+
+		Matches a single fixed character. Used for punctuation and operators.
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"name"</span>:     <span style="color:#3469e3;">"SEMICOLON"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"type"</span>:     <span style="color:#3469e3;">"FIXED_CHAR"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"value"</span>:    <span style="color:#3469e3;">";"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"priority"</span>: 5<br>
+		&nbsp;6.&nbsp;}
+		</div>
+
+		<h3>FIXED_VALUE</h3>
+
+		Matches one of a fixed set of multi-character strings. Used for keywords and boolean literals.
+		Must have a higher priority than <code>SEQUENCE</code> rules that share the same start
+		characters (e.g. keywords vs. identifiers).
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"name"</span>:     <span style="color:#3469e3;">"KEYWORD"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"type"</span>:     <span style="color:#3469e3;">"FIXED_VALUE"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"values"</span>:   [ <span style="color:#3469e3;">"if"</span>, <span style="color:#3469e3;">"else"</span>, <span style="color:#3469e3;">"while"</span>, <span style="color:#3469e3;">"for"</span>, <span style="color:#3469e3;">"function"</span>, <span style="color:#3469e3;">"return"</span>, <span style="color:#3469e3;">"var"</span>, <span style="color:#3469e3;">"const"</span> ],<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"priority"</span>: 10<br>
+		&nbsp;6.&nbsp;}
+		</div>
+
+		<h3>SEQUENCE</h3>
+
+		Matches a run of characters based on allowed character sets. Optionally enforces a start
+		character set, an end character, and a custom validator function name.
+
+		<table>
+			<tr><th>Field</th><th>Required</th><th>Description</th></tr>
+			<tr><td><code>allowedChars</code></td><td>yes</td><td>Characters that may appear anywhere in the sequence.</td></tr>
+			<tr><td><code>startsWith</code></td><td>no</td><td>Restricts the first character to this set. Defaults to <code>allowedChars</code>.</td></tr>
+			<tr><td><code>endsWith</code></td><td>no</td><td>Fixed terminator character (e.g. <code>"</code> for string literals).</td></tr>
+			<tr><td><code>validator</code></td><td>no</td><td>Name of a built-in validator to apply to the token value after matching (e.g. <code>"numberValidator"</code>).</td></tr>
+		</table>
+
+		<div class="code">
+		&nbsp;1.&nbsp;{ <span style="color:#888;">// identifier</span><br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"name"</span>:         <span style="color:#3469e3;">"IDENTIFIER"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"type"</span>:         <span style="color:#3469e3;">"SEQUENCE"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"allowedChars"</span>: <span style="color:#3469e3;">"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"startsWith"</span>:   <span style="color:#3469e3;">"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"</span>,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"priority"</span>:     7<br>
+		&nbsp;7.&nbsp;}<br>
+		<br>
+		&nbsp;1.&nbsp;{ <span style="color:#888;">// string literal</span><br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"name"</span>:         <span style="color:#3469e3;">"CHAR_SEQUENCE"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"type"</span>:         <span style="color:#3469e3;">"SEQUENCE"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"allowedChars"</span>: <span style="color:#3469e3;">"*"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"startsWith"</span>:   <span style="color:#3469e3;">"\""</span>,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"endsWith"</span>:     <span style="color:#3469e3;">"\""</span>,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"priority"</span>:     6<br>
+		&nbsp;8.&nbsp;}
+		</div>
+
+		<b>Priority guidelines:</b>
+		<table>
+			<tr><th>Token type</th><th>Recommended priority</th></tr>
+			<tr><td>Keywords, boolean, null</td><td>10</td></tr>
+			<tr><td>Multi-char operators (<code>++</code>, <code>--</code>, <code>!=</code> &hellip;)</td><td>8&ndash;9</td></tr>
+			<tr><td>Identifiers, numbers</td><td>7</td></tr>
+			<tr><td>String literals</td><td>6</td></tr>
+			<tr><td>Single-char punctuation</td><td>5</td></tr>
+		</table>
+
+		<h2>Compilation rules</h2>
+
+		Compilation rules define the grammar of the language. Each rule has a <code>name</code> and an
+		inner <code>rule</code> object. The syntax analyser starts from the <code>rootRule</code> and
+		recursively tries to match the token stream.
+
+		<h3>Rule types</h3>
+
+		<table>
+			<tr><th>Type</th><th>Key</th><th>Meaning</th></tr>
+			<tr><td><code>logic</code> + <code>$and</code></td><td>Array of sub-rules</td><td>All sub-rules must match <b>in order</b>. Produces an AND node in the execution tree.</td></tr>
+			<tr><td><code>logic</code> + <code>$or</code></td><td>Array of sub-rules</td><td><b>First</b> matching sub-rule wins. Produces an OR node. Order matters: put more specific alternatives first.</td></tr>
+			<tr><td><code>token</code></td><td><code>name</code> (+ optional <code>value</code>)</td><td>Matches a single token of the given type. An optional <code>value</code> field restricts to a specific lexical value (e.g. keyword <code>"if"</code>).</td></tr>
+			<tr><td><code>rule</code></td><td><code>name</code></td><td>References another top-level compilation rule.</td></tr>
+		</table>
+
+		<h3>Example: variable declaration</h3>
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"VAR_DECL"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"rule"</span>: {<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"logic"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"$and"</span>: [<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"token"</span>, <span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"KEYWORD"</span>, <span style="color:#3469e3;">"value"</span>: <span style="color:#3469e3;">"var"</span> },<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"token"</span>, <span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"IDENTIFIER"</span> },<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"token"</span>, <span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"SEMICOLON"</span> }<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]<br>
+		10.&nbsp;&nbsp;&nbsp;}<br>
+		11.&nbsp;}
+		</div>
+
+		<h3>Example: if / else statement</h3>
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"IF_STATEMENT"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"rule"</span>: {<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"logic"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"$or"</span>: [<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#888;">/* if + else variant — more specific, must come first */</span><br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"logic"</span>, <span style="color:#3469e3;">"$and"</span>: [<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"token"</span>, <span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"KEYWORD"</span>, <span style="color:#3469e3;">"value"</span>: <span style="color:#3469e3;">"if"</span> },<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"rule"</span>,  <span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"CONDITION"</span> },<br>
+		10.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"rule"</span>,  <span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"BLOCK"</span> },<br>
+		11.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"token"</span>, <span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"KEYWORD"</span>, <span style="color:#3469e3;">"value"</span>: <span style="color:#3469e3;">"else"</span> },<br>
+		12.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"rule"</span>,  <span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"BLOCK"</span> }<br>
+		13.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]<br>
+		14.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},<br>
+		15.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#888;">/* if only */</span><br>
+		16.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"logic"</span>, <span style="color:#3469e3;">"$and"</span>: [<br>
+		17.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"token"</span>, <span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"KEYWORD"</span>, <span style="color:#3469e3;">"value"</span>: <span style="color:#3469e3;">"if"</span> },<br>
+		18.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"rule"</span>,  <span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"CONDITION"</span> },<br>
+		19.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span style="color:#3469e3;">"type"</span>: <span style="color:#3469e3;">"rule"</span>,  <span style="color:#3469e3;">"name"</span>: <span style="color:#3469e3;">"BLOCK"</span> }<br>
+		20.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]<br>
+		21.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+		22.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]<br>
+		23.&nbsp;&nbsp;&nbsp;}<br>
+		24.&nbsp;}
+		</div>
+
+		<h2>Versioning your grammar</h2>
+
+		The recommended workflow when extending a language is:
+		<ol>
+			<li>Copy the current <code>compilerConfig_vX.Y.Z.json</code> to <code>compilerConfig_vX.Y.(Z+1).json</code></li>
+			<li>Increment the <code>grammar.version</code> field inside the new file</li>
+			<li>Add or modify tokenization and/or compilation rules</li>
+			<li>Add the corresponding handler in the language runtime plugin (see <b>Execution Engine Development Guide</b>)</li>
+			<li>Add regression test cases in <code>workDir/tests/</code> and run the test suite</li>
+		</ol>
+
+		Never modify an existing grammar config file that is already in production use. Always create
+		a new version file and update the reference in the consumer plugin.
+
+		<h2>Common pitfalls</h2>
+
+		<table>
+			<tr><th>Symptom</th><th>Cause</th></tr>
+			<tr><td>Keyword is tokenized as IDENTIFIER</td><td>The FIXED_VALUE rule for the keyword has a lower priority than the SEQUENCE rule for IDENTIFIER. Raise the FIXED_VALUE priority to at least 10.</td></tr>
+			<tr><td>More specific <code>$or</code> alternative never matches</td><td>A more general alternative appears earlier in the <code>$or</code> array. Move the specific alternative first.</td></tr>
+			<tr><td>Multi-char operator (e.g. <code>!=</code>) is tokenized as two separate tokens</td><td>The FIXED_CHAR rule for <code>!</code> fires before the FIXED_VALUE rule for <code>!=</code>. Raise the priority of the multi-char rule above the single-char one.</td></tr>
+			<tr><td>Compilation fails silently with no error detail</td><td>Set the logging level to <code>debug</code> in the grammar config <code>logging</code> section for detailed analyser output.</td></tr>
+		</table>
+
+	</body>
+</html>

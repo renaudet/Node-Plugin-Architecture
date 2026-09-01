@@ -5,7 +5,9 @@
   "plugin": "plugin.js",
   "requires": [
   	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
-  	{"type": "plugin","id": "npa.core","version": "1.0.0"}
+  	{"type": "plugin","id": "npa.core","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.http","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.documentation","version": "1.0.0"}
   ],
   "extends": [
   	{
@@ -17,6 +19,36 @@
   		"point": "npa.core.service",
   		"id": "npa.compiler.service",
   		"service": "compiler"
+  	},
+  	{
+  		"point": "npa.http.static",
+  		"id": "npa.compiler.htdocs",
+  		"path": "/npa-compiler",
+  		"localDir": "htdocs"
+  	},
+  	{
+  		"point": "npa.documentation.page",
+  		"id": "npa.compiler.doc",
+  		"label": "npa.compiler - Generic Compiler",
+  		"category": "NPA Server-side Plugins",
+  		"subcategory": "Development",
+  		"url": "/npa-compiler/docs/npaCompiler.html"
+  	},
+  	{
+  		"point": "npa.documentation.page",
+  		"id": "npa.compiler.doc.grammar",
+  		"label": "Grammar Development Guide",
+  		"category": "Development",
+  		"subcategory": "Generic Compiler",
+  		"url": "/npa-compiler/docs/npaCompilerGrammar.html"
+  	},
+  	{
+  		"point": "npa.documentation.page",
+  		"id": "npa.compiler.doc.engine",
+  		"label": "Execution Engine Development Guide",
+  		"category": "Development",
+  		"subcategory": "Generic Compiler",
+  		"url": "/npa-compiler/docs/npaCompilerEngine.html"
   	}
   ],
   "provides": [

@@ -1,0 +1,201 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - Generic Compiler Execution Engine Development Guide">
+		<meta name="Author" lang="en" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/dev/css/apafDocumentation.css" rel="stylesheet">
+		<title>Execution Engine Development Guide</title>
+	</head>
+	<body>
+
+		<h1>Execution Engine Development Guide</h1>
+
+		<h2>Overview</h2>
+
+		After compilation, the source program is represented as a tree of <b>ExecutionUnit</b> (EU)
+		nodes. The <b>ExecutionEngine</b> walks this tree in order and delegates each node to a
+		<b>language runtime plugin</b> that you provide. This guide explains the EU node structure,
+		the EuReader navigation API, the engine memory model, and the full pattern for writing a
+		runtime plugin.
+
+		<h2>ExecutionUnit node structure</h2>
+
+		Every node in the compiled tree is an <code>ExecutionUnit</code> object with three fields:
+
+		<table>
+			<tr><th>Field</th><th>Type</th><th>Meaning</th></tr>
+			<tr><td><code>name</code></td><td>string</td><td>Rule or token type (e.g. <code>"IF_STATEMENT"</code>, <code>"AND"</code>, <code>"IDENTIFIER"</code>).</td></tr>
+			<tr><td><code>token</code></td><td>object</td><td>Source token with <code>.value</code>, <code>.line</code>, <code>.char</code>.</td></tr>
+			<tr><td><code>next</code></td><td>EU or EU[]</td><td>Single child for named/OR nodes; array of children for AND nodes; token value for leaf nodes.</td></tr>
+		</table>
+
+		<b>Key invariants:</b>
+		<ul>
+			<li><b>Named rule node</b> &mdash; <code>eu.next</code> is a single EU (the matched alternative). The rule name is <code>eu.name</code>.</li>
+			<li><b>AND node</b> &mdash; <code>eu.name === "AND"</code>, <code>eu.next</code> is an <code>ExecutionUnit[]</code> of the matched sub-rules in order.</li>
+			<li><b>Token leaf</b> &mdash; <code>eu.name</code> is the token type, <code>eu.token.value</code> (also <code>eu.value</code>) holds the lexical value.</li>
+		</ul>
+
+		<h2>EuReader &mdash; navigation API</h2>
+
+		Never traverse raw <code>.next.next[n]</code> chains directly. Use the <b>EuReader</b> wrapper
+		(defined at the top of language runtime plugin files) to navigate the tree safely:
+
+		<div class="code">
+		&nbsp;1.&nbsp;<span style="color:#888;">// wrapping and unwrapping</span><br>
+		&nbsp;2.&nbsp;r(eu)            <span style="color:#888;">// wrap an EU into an EuReader</span><br>
+		&nbsp;3.&nbsp;r(eu).eu         <span style="color:#888;">// unwrap back to the raw EU</span><br>
+		<br>
+		&nbsp;4.&nbsp;<span style="color:#888;">// navigation on a NAMED node (eu.next = single child)</span><br>
+		&nbsp;5.&nbsp;r(eu).inner()    <span style="color:#888;">// EuReader wrapping eu.next</span><br>
+		&nbsp;6.&nbsp;r(eu).innerName() <span style="color:#888;">// eu.next.name</span><br>
+		<br>
+		&nbsp;7.&nbsp;<span style="color:#888;">// navigation when the named node's child is an AND node (eu.next.next = array)</span><br>
+		&nbsp;8.&nbsp;r(eu).child(n)    <span style="color:#888;">// EuReader wrapping eu.next.next[n]</span><br>
+		&nbsp;9.&nbsp;r(eu).childName(n) <span style="color:#888;">// eu.next.next[n].name</span><br>
+		10.&nbsp;r(eu).childValue(n) <span style="color:#888;">// eu.next.next[n].value</span><br>
+		<br>
+		11.&nbsp;<span style="color:#888;">// navigation when eu IS the AND node (eu.next = array)</span><br>
+		12.&nbsp;r(eu).item(n)      <span style="color:#888;">// EuReader wrapping eu.next[n]</span><br>
+		13.&nbsp;r(eu).itemName(n)  <span style="color:#888;">// eu.next[n].name</span><br>
+		14.&nbsp;r(eu).itemValue(n) <span style="color:#888;">// eu.next[n].value</span><br>
+		15.&nbsp;r(eu).firstChild() <span style="color:#888;">// EuReader wrapping eu.next[0]</span>
+		</div>
+
+		<b>Rule of thumb:</b>
+		<ul>
+			<li>After <code>r(instruction).inner()</code> you are <b>on the AND node</b> &rarr; use <code>.item()</code> / <code>.itemValue()</code></li>
+			<li>When you stay on a named node &rarr; use <code>.child()</code> / <code>.childValue()</code></li>
+		</ul>
+
+		<h2>Engine memory model</h2>
+
+		The execution engine manages variables through a <b>namespace stack</b>. A namespace is a
+		plain JavaScript object mapping variable names to values. The stack supports lexical scoping:
+		variable lookups walk the stack from top (innermost) to bottom (global scope).
+
+		<table>
+			<tr><th>Method</th><th>Description</th></tr>
+			<tr><td><code>engine.sto(name, value)</code></td><td>Store <code>value</code> under <code>name</code> in the current (top) namespace.</td></tr>
+			<tr><td><code>engine.rcl(name)</code></td><td>Recall a variable: searches from top namespace down to the root namespace.</td></tr>
+			<tr><td><code>engine.push(ns)</code></td><td>Push a new namespace (creates a new scope). Pass a string label for debugging.</td></tr>
+			<tr><td><code>engine.pop()</code></td><td>Pop the current namespace and discard its variables.</td></tr>
+			<tr><td><code>engine.rfc(name, fn, async)</code></td><td>Register a native JS built-in function. Set <code>async</code> to <code>true</code> for async functions.</td></tr>
+			<tr><td><code>engine.dcl(name, eu)</code></td><td>Declare a compiled function by name (stores its EU subtree).</td></tr>
+			<tr><td><code>engine.cal(name, args)</code></td><td>Call a built-in or declared function by name.</td></tr>
+			<tr><td><code>engine.halt(msg)</code></td><td>Raise the halt flag with an error message. Execution stops immediately.</td></tr>
+		</table>
+
+		<b>Scoping conventions:</b>
+		<ul>
+			<li><code>for</code> and <code>while</code> loop bodies do <b>not</b> push a namespace &mdash; variables modified inside a loop are visible after the loop (JavaScript semantics).</li>
+			<li>Function calls <b>do</b> push a namespace (via <code>engine.cal</code>), creating proper function-level scope.</li>
+		</ul>
+
+		<h2>Writing a language runtime plugin</h2>
+
+		A runtime plugin is a plain JavaScript object with three mandatory methods:
+
+		<table>
+			<tr><th>Method</th><th>Signature</th><th>Description</th></tr>
+			<tr><td><code>process</code></td><td><code>process(eu, engine)</code></td><td>Called for each ExecutionUnit node. Dispatches to per-instruction handlers.</td></tr>
+			<tr><td><code>callFunction</code></td><td><code>callFunction(name, args, engine)</code></td><td>Called when the engine encounters a function call. Looks up and executes the named function.</td></tr>
+			<tr><td><code>halt</code></td><td><code>halt(msg, engine)</code></td><td>Called when an unrecoverable error occurs. Should call <code>engine.halt(msg)</code>.</td></tr>
+		</table>
+
+		<h3>Dispatch pattern</h3>
+
+		The standard dispatch pattern inside <code>process()</code> unwraps the top-level named node
+		and routes to a dedicated handler based on the matched rule name:
+
+		<div class="code">
+		&nbsp;1.&nbsp;process(eu, engine) {<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;let instruction = r(eu).inner().eu; <span style="color:#888;">// unwrap: named &rarr; AND node</span><br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;switch(instruction.name) {<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case <span style="color:#3469e3;">'VAR_DECL'</span>:   this.processVarDecl(r(instruction).inner().eu, engine);  break;<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case <span style="color:#3469e3;">'IF_STATEMENT'</span>: this.processIfStatement(r(instruction).inner().eu, engine); break;<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;engine.halt(<span style="color:#3469e3;">'Unknown instruction: '</span> + instruction.name);<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;}<br>
+		&nbsp;9.&nbsp;}
+		</div>
+
+		<h3>Handler pattern</h3>
+
+		Each handler receives an EU that is already the <b>AND node</b> of the matched rule. Use
+		<code>.item(n)</code> to access children by index:
+
+		<div class="code">
+		&nbsp;1.&nbsp;processVarDecl(instruction, engine) {<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#888;">// rule: KEYWORD("var") IDENTIFIER SEMICOLON</span><br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;let eu = r(instruction);<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;let varName = eu.itemValue(1); <span style="color:#888;">// index 1 = IDENTIFIER token</span><br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;engine.sto(varName, undefined);<br>
+		&nbsp;6.&nbsp;}
+		</div>
+
+		<h3>Evaluating expressions</h3>
+
+		For nodes that produce a value (arithmetic, comparisons, function calls &hellip;), use an
+		<b>EvaluationTree</b> helper that recursively resolves the expression tree:
+
+		<div class="code">
+		&nbsp;1.&nbsp;processAssignment(instruction, engine) {<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#888;">// rule: IDENTIFIER ASSIGN_OP EXPRESSION SEMICOLON</span><br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;let eu = r(instruction);<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;let varName  = eu.itemValue(0);<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;let exprNode = eu.item(2).eu;<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;let value    = new EvaluationTree(exprNode, engine).evaluate();<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;engine.sto(varName, value);<br>
+		&nbsp;8.&nbsp;}
+		</div>
+
+		Inside <code>EvaluationTree.evaluate()</code>, add a <code>case</code> for each new expression
+		leaf type:
+
+		<div class="code">
+		&nbsp;1.&nbsp;<span style="color:#888;">// inside EvaluationTree.evaluate()</span><br>
+		&nbsp;2.&nbsp;if (<span style="color:#3469e3;">'MY_LITERAL'</span> == expr.name) {<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;this.value = parseMyLiteral(expr.token.value);<br>
+		&nbsp;4.&nbsp;}
+		</div>
+
+		<h2>Adding a new instruction type &mdash; checklist</h2>
+
+		<ol>
+			<li>Add tokenization rules (if the new syntax needs new token types) and compilation rules to the grammar config (see <b>Grammar Development Guide</b>).</li>
+			<li>Add a <code>process&lt;InstructionName&gt;(instruction, engine)</code> method to the runtime plugin.</li>
+			<li>Add a dispatch case in <code>process()</code> for the new rule name.</li>
+			<li>If the new instruction evaluates an expression, add the corresponding case in <code>EvaluationTree.evaluate()</code>.</li>
+			<li>Write a test case in <code>workDir/tests/</code> and verify that all existing tests still pass.</li>
+		</ol>
+
+		<h2>Async built-in functions</h2>
+
+		When a built-in registered with <code>async: true</code> is called, the engine increments an
+		internal <code>_pendingCallbacks</code> counter. The execution loop waits for all pending
+		callbacks to complete before considering execution finished. Declare async built-ins as:
+
+		<div class="code">
+		&nbsp;1.&nbsp;let builtins = {<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;fetchData: {<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fn: async (args) =&gt; {<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let data = await someAsyncCall(args[0]);<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return data;<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;async: true<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;}<br>
+		&nbsp;9.&nbsp;};
+		</div>
+
+		The memory space snapshot is taken <b>after</b> all pending callbacks resolve, so async
+		built-in results stored via <code>engine.sto()</code> are visible in <code>result.memorySpace</code>.
+
+	</body>
+</html>
