@@ -129,10 +129,28 @@ plugin.doLog = function(level){
 	return false;
 }
 
+const MAX_ROTATED_FILES = 5;
+plugin.rotateIfNeeded = function(filename){
+	try{
+		let stat = fs.statSync(filename);
+		if(stat.size >= this.getConfigValue('logging.maxSize','integer')){
+			// shift .4→.5, .3→.4, .2→.3, .1→.2  (oldest .5 is silently dropped)
+			for(var i=MAX_ROTATED_FILES-1;i>=1;i--){
+				try{ fs.renameSync(filename+'.'+i, filename+'.'+(i+1)); }catch(e){}
+			}
+			// current log becomes .1
+			fs.renameSync(filename, filename+'.1');
+		}
+	}catch(e){
+		// file does not exist yet — nothing to rotate
+	}
+}
+
 plugin.log2 = function(sourceId,level,text){
 	var loggerConfig = this.loggers[sourceId];
 	if(typeof loggerConfig!='undefined'){
 		var targetFilename = this.logDir+'/'+loggerConfig.dir+'/'+('error'==level?DEFAULT_ERROR_FILENAME:DEFAULT_LOG_FILENAME);
+		this.rotateIfNeeded(targetFilename);
 		var formatedTrace = this.formatLog(text);
 		fs.appendFileSync(targetFilename,formatedTrace);
 	}
@@ -171,34 +189,35 @@ plugin.getLoggerConfig = function(pluginId){
 	}
 }
 
-const MAX_LINE_COUNT = 50;
-plugin.readStandardLogContent = function(pluginId,then){
+const DEFAULT_PAGE_SIZE = 100;
+plugin.readLogContent = function(filename,offset,limit,then){
+	const fileStream = fs.createReadStream(filename);
+	let reader = readline.createInterface({
+		input: fileStream,
+		crlfDelay: Infinity,
+	});
+	let allLines = [];
+	reader.on('line', function(line){
+		allLines.push(line);
+	})
+	.on('error', function(e){
+		then(['an error occured reading file '+filename]);
+	})
+	.on('close', function(){
+		// window from the end: offset=0 means the very last lines
+		let total = allLines.length;
+		let start = Math.max(0, total - offset - limit);
+		let end   = Math.max(0, total - offset);
+		then(allLines.slice(start, end));
+	});
+}
+
+plugin.readStandardLogContent = function(pluginId,then,offset=0,limit=DEFAULT_PAGE_SIZE){
 	var loggerConfig = this.getLoggerConfig(pluginId);
 	if(typeof loggerConfig!='undefined'){
 		if(loggerConfig.initialized && typeof loggerConfig.dir!='undefined'){
 			let path = this.logDir+'/'+loggerConfig.dir+'/'+DEFAULT_LOG_FILENAME;
-			const fileStream = fs.createReadStream(path);
-			let reader = readline.createInterface({
-			    input: fileStream,
-			    crlfDelay: Infinity,
-			  });
-			let lineArray = [];
-			reader.on('line', function(line, lineCount, byteCount) {
-				if(lineArray.length>MAX_LINE_COUNT){
-					let newArray = [];
-					for(var i=1;i<lineArray.length;i++){
-						newArray.push(lineArray[i]);
-					}
-					lineArray = newArray;
-				}
-				lineArray.push(line);
-			  })
-			  .on('error', function(e) {
-				then(['an error occured reading file '+path]);
-			  })
-			  .on('close', function () {
-				then(lineArray);
-	          });
+			this.readLogContent(path,offset,limit,then);
 		}else{
 			then([]);
 		}
@@ -207,33 +226,12 @@ plugin.readStandardLogContent = function(pluginId,then){
 	}
 }
 
-plugin.readErrorLogContent = function(pluginId,then){
+plugin.readErrorLogContent = function(pluginId,then,offset=0,limit=DEFAULT_PAGE_SIZE){
 	var loggerConfig = this.getLoggerConfig(pluginId);
 	if(typeof loggerConfig!='undefined'){
 		if(loggerConfig.initialized && typeof loggerConfig.dir!='undefined'){
 			let path = this.logDir+'/'+loggerConfig.dir+'/'+DEFAULT_ERROR_FILENAME;
-			const fileStream = fs.createReadStream(path);
-			let reader = readline.createInterface({
-			    input: fileStream,
-			    crlfDelay: Infinity,
-			  });
-			let lineArray = [];
-			reader.on('line', function(line, lineCount, byteCount) {
-				if(lineArray.length>MAX_LINE_COUNT){
-					let newArray = [];
-					for(var i=1;i<lineArray.length;i++){
-						newArray.push(lineArray[i]);
-					}
-					lineArray = newArray;
-				}
-				lineArray.push(line);
-			  })
-			  .on('error', function(e) {
-				then(['an error occured reading file '+path]);
-			  })
-			  .on('close', function () {
-				then(lineArray);
-	          });
+			this.readLogContent(path,offset,limit,then);
 		}else{
 			then([]);
 		}

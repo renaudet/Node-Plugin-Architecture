@@ -3,6 +3,9 @@
   "name": "Logging provider",
   "version": "1.0.0",
   "plugin": "plugin.js",
+  "logging": {
+  	"maxSize": "$LOG_MAX_SIZE,5242880"
+  },
   "requires": [
   ],
   "extends": [
