@@ -39,6 +39,7 @@ class ExecutionEngine extends Logger{
 	selectedPlugin = null;
 	callStack = [];
 	_pendingCallbacks = 0;   // number of async built-in callbacks still in flight
+	_completionCallback = null;  // optional fn(err, memorySpace) called when execution finishes
 	constructor(configuration){
 		super(configuration.logging);
 	}
@@ -54,13 +55,15 @@ class ExecutionEngine extends Logger{
 		this.selectedPlugin = null;
 		this.callStack = [];
 		this._pendingCallbacks = 0;
+		this._completionCallback = null;
 		this.debug('<-ExecutionEngine#reset()');
 	}
-	process(executionUnit){
+	process(executionUnit, completionCallback){
 		this.debug('->ExecutionEngine#process()');
 		if(executionUnit && this.canLog('debug')){
 			executionUnit.dumpToConsole();
 		}
+		this._completionCallback = completionCallback || null;
 		this.selectedPlugin = this.plugins[executionUnit.grammar.name];
 		if(this.selectedPlugin){
 			this.trace('found helper plugin for grammar "'+executionUnit.grammar.name+'" with release number '+this.selectedPlugin.grammar.version);
@@ -68,10 +71,14 @@ class ExecutionEngine extends Logger{
 			if(this.haltFlagRaised){
 				this.error('execution aborted!');
 				this.error('cause: '+this.haltMsg);
+				// Leave _completionCallback in place — npa.compiler#execute() reads haltFlagRaised
+				// via its !cbFired branch and handles the error/reset itself.
 			}
-			// Note: reset() is NOT called here — the caller (ExecutionEngine#execute via
-			// npa.compiler) reads memorySpace after process() returns, then calls reset().
-			// For async built-ins, _onCallbackDone() still handles the deferred reset.
+			// For both sync-success and sync-halt paths, _completionCallback is NOT called here:
+			// the caller (npa.compiler#execute()) handles the snapshot + reset + callback in the
+			// !cbFired branch.
+			// If _pendingCallbacks > 0, _onCallbackDone() will fire the completion callback
+			// once the last async built-in has finished.
 		}else{
 			this.error('unknown source type "'+executionUnit.grammar.name+'"');
 		}
@@ -159,8 +166,28 @@ class ExecutionEngine extends Logger{
 	_onCallbackDone(){
 		this._pendingCallbacks--;
 		this.debug('ExecutionEngine: pending callbacks -> '+this._pendingCallbacks);
-		if(this._pendingCallbacks===0 && !this.haltFlagRaised){
-			this.reset();
+		if(this._pendingCallbacks===0){
+			if(this.haltFlagRaised){
+				// A halt was raised during an async callback — notify the caller
+				if(this._completionCallback){
+					let cb = this._completionCallback;
+					let msg = this.haltMsg;
+					this.reset();
+					cb(msg, null);
+				}else{
+					this.reset();
+				}
+			}else{
+				// All async work done — snapshot memory, notify caller, then reset
+				if(this._completionCallback){
+					let cb = this._completionCallback;
+					let snapshot = Object.assign({}, this.memorySpace);
+					this.reset();
+					cb(null, snapshot);
+				}else{
+					this.reset();
+				}
+			}
 		}
 	}
 	cal(identifier,args){

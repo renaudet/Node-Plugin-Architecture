@@ -51,20 +51,27 @@ plugin.compile = function(source, grammarConfig){
 /*
  * Execute a previously compiled ExecutionUnit.
  *
- * @param {ExecutionUnit} eu           - the compiled execution unit (result of compile())
- * @param {object}        builtins     - map of built-in functions to expose to the program.
- *                                       Each entry is either:
- *                                         { name: fn }                       for a sync built-in
- *                                         { name: { fn: fn, async: true } }  for an async built-in
- * @param {object}        enginePlugin - the language runtime plugin instance
- *                                       (must implement process(), callFunction(), halt())
- * @param {object}        [context]    - optional map of variable name → initial value to
- *                                       pre-store in the engine memory space before execution.
- *                                       These become top-level variables accessible by name
- *                                       in the script (e.g. { request: reqObj, response: {} }).
- * @returns {{ success: boolean, error: string|null, memorySpace: object }}
+ * @param {ExecutionUnit} eu                 - the compiled execution unit (result of compile())
+ * @param {object}        builtins           - map of built-in functions to expose to the program.
+ *                                             Each entry is either:
+ *                                               { name: fn }                       for a sync built-in
+ *                                               { name: { fn: fn, async: true } }  for an async built-in
+ * @param {object}        enginePlugin       - the language runtime plugin instance
+ *                                             (must implement process(), callFunction(), halt())
+ * @param {object}        [context]          - optional map of variable name → initial value to
+ *                                             pre-store in the engine memory space before execution.
+ *                                             These become top-level variables accessible by name
+ *                                             in the script (e.g. { request: reqObj, response: {} }).
+ * @param {function}      [completionCallback] - optional node-style callback(err, result).
+ *                                             When provided the call is treated as async:
+ *                                             the callback is invoked once all async built-ins
+ *                                             have finished (or immediately for sync-only scripts).
+ *                                             When omitted the function returns the result object
+ *                                             synchronously (legacy behaviour — only safe when no
+ *                                             async built-ins are used).
+ * @returns {{ success, error, memorySpace }}  only when completionCallback is omitted
  */
-plugin.execute = function(eu, builtins, enginePlugin, context){
+plugin.execute = function(eu, builtins, enginePlugin, context, completionCallback){
 	this.trace('->npa.compiler#execute()');
 	let engine = new ExecutionEngine({ logging: this._npaLoggerConfig() });
 	engine.registerPlugin(enginePlugin);
@@ -83,23 +90,57 @@ plugin.execute = function(eu, builtins, enginePlugin, context){
 			engine.sto(varName, context[varName]);
 		}
 	}
-	engine.process(eu);
-	// Capture the memory space BEFORE reset() clears it.
-	// For sync execution (_pendingCallbacks === 0), reset() was not called inside process()
-	// so memorySpace still contains all variable values here.
-	let snapshot = Object.assign({}, engine.memorySpace);
-	if(engine._pendingCallbacks === 0){
-		engine.reset();
-	}
-	let result;
-	if(engine.haltFlagRaised){
-		this.error('npa.compiler#execute() - execution halted: '+engine.haltMsg);
-		result = { success: false, error: engine.haltMsg, memorySpace: snapshot };
+	let self = this;
+	if(completionCallback){
+		// Async path: the engine fires _completionCallback when all async I/O is done (or on halt).
+		// For sync-only scripts (no async built-ins), process() returns without ever calling
+		// _completionCallback — we detect that case via _pendingCallbacks === 0 below.
+		let cbFired = false;
+		engine.process(eu, function(err, memorySpace){
+			cbFired = true;
+			if(err){
+				self.error('npa.compiler#execute() - execution error: '+err);
+				self.trace('<-npa.compiler#execute() - async failure');
+				completionCallback(err, { success: false, error: err, memorySpace: memorySpace || {} });
+			}else{
+				self.trace('<-npa.compiler#execute() - async success');
+				completionCallback(null, { success: true, error: null, memorySpace: memorySpace });
+			}
+		});
+		// If there are no pending async callbacks, the script was purely synchronous:
+		// _completionCallback was never triggered by _onCallbackDone, so fire it now.
+		// If _pendingCallbacks > 0, _onCallbackDone will fire _completionCallback later — do nothing.
+		if(!cbFired && engine._pendingCallbacks === 0){
+			let haltErr = engine.haltFlagRaised ? engine.haltMsg : null;
+			let snapshot = Object.assign({}, engine.memorySpace);
+			engine.reset();
+			if(haltErr){
+				self.error('npa.compiler#execute() - execution halted: '+haltErr);
+				self.trace('<-npa.compiler#execute() - async (sync script, halted)');
+				completionCallback(haltErr, { success: false, error: haltErr, memorySpace: snapshot });
+			}else{
+				self.trace('<-npa.compiler#execute() - async (sync script)');
+				completionCallback(null, { success: true, error: null, memorySpace: snapshot });
+			}
+		}
 	}else{
-		result = { success: true, error: null, memorySpace: snapshot };
+		// Sync path (legacy): no async built-ins expected.
+		engine.process(eu);
+		// Capture the memory space BEFORE reset() clears it.
+		let snapshot = Object.assign({}, engine.memorySpace);
+		if(engine._pendingCallbacks === 0){
+			engine.reset();
+		}
+		let result;
+		if(engine.haltFlagRaised){
+			this.error('npa.compiler#execute() - execution halted: '+engine.haltMsg);
+			result = { success: false, error: engine.haltMsg, memorySpace: snapshot };
+		}else{
+			result = { success: true, error: null, memorySpace: snapshot };
+		}
+		this.trace('<-npa.compiler#execute()');
+		return result;
 	}
-	this.trace('<-npa.compiler#execute()');
-	return result;
 };
 
 /*
