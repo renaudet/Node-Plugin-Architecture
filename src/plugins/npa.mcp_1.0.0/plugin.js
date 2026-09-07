@@ -164,20 +164,53 @@ plugin.buildApiRegistrar = function(extenderId,extensionConfig) {
 					}
 				let fakeReq = { body, headers: httpReq ? httpReq.headers : {}, params, query };
 				let fakeRes = {
+						_headers: {},
 						json: (obj) => resolve({
 							content: [{ type: 'text', text: JSON.stringify(obj) }]
 						}),
+						send: (data) => {
+							if (Buffer.isBuffer(data)) {
+								const mimeType = fakeRes._headers['content-type'] || 'application/octet-stream';
+								const blob = data.toString('base64');
+								if (mimeType.startsWith('image/')) {
+									resolve({
+										content: [
+											{ type: 'image', data: blob, mimeType: mimeType }
+										]
+									});
+								} else {
+									resolve({
+										content: [
+											{ type: 'resource', resource: { uri: 'data:' + mimeType + ';base64,' + blob, blob: blob, mimeType: mimeType } }
+										]
+									});
+								}
+							} else if (typeof data === 'object') {
+								resolve({
+									content: [{ type: 'text', text: JSON.stringify(data) }]
+								});
+							} else {
+								resolve({
+									content: [{ type: 'text', text: String(data) }]
+								});
+							}
+						},
 						download: (absoluteFilePath, filename) => {
 							try {
-								const ext = nodePath.extname(filename || absoluteFilePath).toLowerCase();
+								const baseFilename = filename || nodePath.basename(absoluteFilePath);
+								const ext = nodePath.extname(baseFilename).toLowerCase();
 								const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
 								const blob = fs.readFileSync(absoluteFilePath).toString('base64');
-								const uri = 'workspace:///' + (filename || nodePath.basename(absoluteFilePath));
+								const uri = 'workspace:///' + baseFilename;
+								
+								let contentItems = [];
+								if (mimeType.startsWith('image/')) {
+									contentItems.push({ type: 'image', data: blob, mimeType: mimeType });
+								} else {
+									contentItems.push({ type: 'resource', resource: { uri: uri, blob: blob, mimeType: mimeType } });
+								}
 								resolve({
-									content: [
-										{ type: 'resource', resource: { uri, blob, mimeType } },
-										{ type: 'text', text: blob }
-									]
+									content: contentItems
 								});
 							} catch(e) {
 								resolve({
@@ -186,7 +219,19 @@ plugin.buildApiRegistrar = function(extenderId,extensionConfig) {
 							}
 						},
 						status: function(code) { this._code = code; return this; },
-						set: function() { return this; }
+						set: function(key, value) {
+							if (typeof key === 'object') {
+								for (let k of Object.keys(key)) {
+									this._headers[k.toLowerCase()] = key[k];
+								}
+							} else if (typeof key === 'string') {
+								this._headers[key.toLowerCase()] = value;
+							}
+							return this;
+						},
+						setHeader: function(key, value) {
+							return this.set(key, value);
+						}
 					};
 				handlerFn.call(contributorPlugin, fakeReq, fakeRes);
 			});
