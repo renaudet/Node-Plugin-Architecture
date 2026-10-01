@@ -26,7 +26,7 @@ var PluginWrapper = require('./pluginWrapper');
 				var dirEntry = entries[j];
 				if(dirEntry.isDirectory()){
 					var path = site.location+'/'+dirEntry.name;
-					this.loadPluginManifest(path);
+					this.loadPluginManifest(path,site);
 				}
 			}
 		}
@@ -34,7 +34,7 @@ var PluginWrapper = require('./pluginWrapper');
 		this.createPluginMap();
 		console.log('plugin map initialized. '+this.plugins.length+' plugins were loaded');
 	}
-	loadPluginManifest(path){
+	loadPluginManifest(path,site){
 		let searchPath = path?path:'';
 		// notice: require() search files relative to the current file - adding a specific requirePath to fix relative path issues
 		if(searchPath.startsWith('./')){
@@ -53,6 +53,9 @@ var PluginWrapper = require('./pluginWrapper');
 			metadata.path = path;
 			metadata.requirePath = searchPath;
 			metadata.manifest = manifest;
+			if(site){
+				metadata.siteConfig = site;
+			}
 			this.map[manifest.id].push(metadata);
 			console.log('- found plugin '+manifest.id);
 		}catch(fnf){
@@ -232,6 +235,12 @@ var PluginWrapper = require('./pluginWrapper');
 	}
 	getPluginWrapper(pluginId){
 		return this.map[pluginId];
+	}
+	shutdown(exitCode = 0, delay = 500){
+		console.log('NPA Integration Runtime shutting down (exitCode: ' + exitCode + ', delay: ' + delay + 'ms)...');
+		setTimeout(function(){
+			process.exit(exitCode);
+		}, delay);
 	}
 }
 
