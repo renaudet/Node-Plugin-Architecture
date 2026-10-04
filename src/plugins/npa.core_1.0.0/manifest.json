@@ -1,0 +1,24 @@
+{
+  "id": "npa.core",
+  "name": "NPA Core plugin",
+  "version": "1.0.0",
+  "plugin": "plugin.js",
+  "requires": [
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.core.logger",
+  		"dir": "npa.core"
+  	}
+  ],
+  "provides": [
+  	{
+  		"id": "npa.core.application"
+  	},
+  	{
+  		"id": "npa.core.service"
+  	}
+  ]
+}
