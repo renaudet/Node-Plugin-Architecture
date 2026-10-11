@@ -293,6 +293,7 @@ plugin.startListener = function(requiredPort=null){
 		setTimeout(function(){ plugin.checkSessions(); },plugin.getConfigValue('http.session.checkperiod','integer')*1000);
 		this.info('starting the Telemetry data collection thread...');
 		setTimeout(function(){ plugin.collectTelemetry(); },10*1000);
+		this.info('HTTP listener ready to process request on port '+port);
 	}
 	this.trace('<-startListener()');
 }
