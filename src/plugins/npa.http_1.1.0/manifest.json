@@ -1,0 +1,119 @@
+{
+  "id": "npa.http",
+  "name": "HTTP endpoint provider",
+  "version": "1.1.0",
+  "plugin": "plugin.js",
+  "http": {
+  	"port": 9080,
+  	"secure": "$ENABLE_SSL,false",
+  	"corsEnabled": true,
+  	"supportedLocale": "en-US,en,fr-FR,fr",
+  	"bodyLimit": {
+  		"json": "$HTTP_BODY_LIMIT_JSON,1mb",
+  		"urlencoded": "$HTTP_BODY_LIMIT_URLENCODED,500kb",
+  		"raw": "$HTTP_BODY_LIMIT_RAW,50mb",
+  		"text": "$HTTP_BODY_LIMIT_TEXT,100kb"
+  	},
+  	"session": {
+  		"enabled": true,
+	    "name": "$SESSION_COOKIE_NAME,NPA",
+	    "secret": "npa4node",
+	    "expires": "$HTTP_SESSION_TIMEOUT,900",
+	    "checkperiod": "$HTTP_SESSION_CLEANER_TIMEOUT,120",
+	    "persistent": "$PERSIST_HTTP_SESSION,false",
+	    "store": "CouchSessionStore"
+  	},
+  	"security": {
+  		"privateKeyFile": "$SSL_PRIVATE_KEY,./ssl/privkey.pem",
+  		"certificate": "$SSL_CERTIFICATE,./ssl/certificate.pem"
+  	}
+  },
+  "requires": [
+  	{"type": "plugin","id": "npa.logging","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.core","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.couchdb.adapter","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.runtime.props","version": "1.0.0"},
+  	{"type": "plugin","id": "npa.telemetry","version": "1.0.0"}
+  ],
+  "extends": [
+  	{
+  		"point": "npa.log.provider",
+  		"id": "npa.http.logger",
+  		"dir": "npa.http"
+  	},
+  	{
+  		"point": "npa.core.service",
+  		"id": "npa.http.service",
+  		"service": "http"
+  	},
+  	{
+  		"point": "npa.couchdb.adapter.datasource",
+  		"id": "npa.http.sessions.datasource",
+  		"reference": "http.sessions",
+  		"hostname": "127.0.0.1",
+  		"port": "5984",
+  		"dbname": "npa_sessions",
+  		"maxPageSize": 500,
+  		"environment": {
+  			"hostname": "NPA_SESSIONS_COUCH_DB_HOST",
+	  		"port": "NPA_SESSIONS_COUCH_DB_PORT",
+	  		"username": "NPA_SESSIONS_COUCH_DB_USER",
+	  		"password": "NPA_SESSIONS_COUCH_DB_USER_PASSWD"
+  		}
+  	},
+  	{
+  		"point": "npa.runtime.property.provider",
+  		"id": "npa.http.property.port",
+		"name": "http.service.port",
+		"description": "TCP Port for the HTTP Service",
+		"type": "int",
+		"value": 9080,
+		"locked": false
+  	},
+  	{
+  		"point": "npa.runtime.property.provider",
+  		"id": "npa.http.property.ssl",
+		"name": "http.service.ssl.enabled",
+		"description": "Whether SSL is enabled for the HTTP Service or not",
+		"type": "boolean",
+		"value": false,
+		"locked": false
+  	},
+  	{
+  		"point": "npa.runtime.property.provider",
+  		"id": "npa.http.session.count",
+		"name": "http.session.count",
+		"description": "Current HTTP session(s) count",
+		"type": "int",
+		"value": 0,
+		"locked": false
+  	},
+  	{
+  		"point": "npa.runtime.property.provider",
+  		"id": "npa.http.authenticated.session.count",
+		"name": "http.session.authenticated.count",
+		"description": "Current HTTP authenticated session(s) count",
+		"type": "int",
+		"value": 0,
+		"locked": false
+  	},
+  	{
+  		"point": "npa.telemetry.dimension.provider",
+  		"id": "npa.http.telemetry.session.provider",
+		"name": "http.session",
+		"displayLabel": "HTTP Sessions",
+		"description": "Authenticated HTTP session(s) count",
+		"type": "int",
+		"unit": "",
+		"maxPoints": 60
+  	}
+  ],
+  "provides": [
+  	{"id": "npa.http.router"},
+  	{"id": "npa.http.handler"},
+  	{"id": "npa.http.static"},
+  	{"id": "npa.http.home"},
+  	{"id": "npa.http.ws.router"},
+  	{"id": "npa.http.ws.handler"}
+  ]
+}

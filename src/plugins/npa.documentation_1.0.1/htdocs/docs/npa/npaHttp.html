@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+	<head>
+		<meta name="description" content="APAF Documentation - npa.http plugin">
+		<meta name="Author" lang="fr" content="Nicolas Renaudet">
+		<meta name="Copyright" content="2025 Nicolas Renaudet - All rights reserved">
+		<meta charset="ISO-8859-1">
+		<meta http-equiv="Content-Type" content="text/html; ISO-8859-1">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv='X-UA-Compatible' content='IE=edge'>
+	    <meta name='viewport' content='width=device-width, initial-scale=1'>
+		<link href="/npa-documentation/css/npaDocumentation.css" rel="stylesheet">
+		<title>npa.http - HTTP Endpoint Provider Plugin</title>
+	</head>
+	<body>
+
+		<h1>npa.http &mdash; HTTP Endpoint Provider Plugin</h1>
+
+		<h2>Overview</h2>
+
+		The <b>npa.http</b> plugin hosts the Express HTTP(S) listener of the NPA server. Other plugins
+		contribute routers, REST handlers, WebSocket handlers, static content and the home page through
+		its extension points. The plugin also manages the HTTP session store (in-memory or persisted in CouchDB)
+		and exposes session counters as runtime properties and as a telemetry dimension.
+		It is registered as the core service <code>http</code>.
+
+		<h2>Version 1.1.0 &mdash; Configurable request body size limits</h2>
+
+		Up to version 1.0.0, the maximum size of request bodies (POST, PUT, ...) was hard-coded in the plugin.
+		Starting with <b>1.1.0</b>, each limit is read from the <code>http.bodyLimit</code> section of the plugin
+		configuration (<code>manifest.json</code>) and can be overridden with an environment variable.
+		A request whose body exceeds the limit is rejected by the server with an
+		<b>HTTP 413 (Payload Too Large)</b> error before reaching any handler.
+
+		<table>
+			<tr>
+				<th>Content-Type</th>
+				<th>Configuration key</th>
+				<th>Environment variable</th>
+				<th>Default</th>
+			</tr>
+			<tr>
+				<td><code>application/json</code></td>
+				<td><code>http.bodyLimit.json</code></td>
+				<td><code>HTTP_BODY_LIMIT_JSON</code></td>
+				<td><b>1mb</b> (500kb in 1.0.0)</td>
+			</tr>
+			<tr>
+				<td><code>application/x-www-form-urlencoded</code></td>
+				<td><code>http.bodyLimit.urlencoded</code></td>
+				<td><code>HTTP_BODY_LIMIT_URLENCODED</code></td>
+				<td>500kb</td>
+			</tr>
+			<tr>
+				<td><code>application/octet-stream</code></td>
+				<td><code>http.bodyLimit.raw</code></td>
+				<td><code>HTTP_BODY_LIMIT_RAW</code></td>
+				<td>50mb</td>
+			</tr>
+			<tr>
+				<td><code>text/*</code></td>
+				<td><code>http.bodyLimit.text</code></td>
+				<td><code>HTTP_BODY_LIMIT_TEXT</code></td>
+				<td>100kb</td>
+			</tr>
+		</table>
+
+		The limits apply to every HTTP verb carrying a body and to all routers of the server.
+		Values use the <code>body-parser</code> syntax: a number of bytes, or a string such as
+		<code>500kb</code>, <code>1mb</code>, <code>50mb</code>.
+
+		<h3>Configuration</h3>
+
+		The default values are declared in the <code>http</code> section of the plugin manifest, using the
+		<code>$ENV_VARIABLE,defaultValue</code> syntax resolved by <code>getConfigValue()</code>:
+
+		<div class="code">
+		&nbsp;1.&nbsp;"http": {<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;...<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"bodyLimit"</span>: {<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"json"</span>: <span style="color:#3469e3;">"$HTTP_BODY_LIMIT_JSON,1mb"</span>,<br>
+		&nbsp;5.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"urlencoded"</span>: <span style="color:#3469e3;">"$HTTP_BODY_LIMIT_URLENCODED,500kb"</span>,<br>
+		&nbsp;6.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"raw"</span>: <span style="color:#3469e3;">"$HTTP_BODY_LIMIT_RAW,50mb"</span>,<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"text"</span>: <span style="color:#3469e3;">"$HTTP_BODY_LIMIT_TEXT,100kb"</span><br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;}<br>
+		&nbsp;9.&nbsp;}
+		</div>
+
+		To accept larger JSON payloads without changing any file, set the environment variable before
+		starting the server, for example <code>HTTP_BODY_LIMIT_JSON=5mb</code>.
+
+		<h2>Other Configuration</h2>
+
+		<table>
+			<tr><th>Key</th><th>Environment variable</th><th>Default</th><th>Description</th></tr>
+			<tr><td><code>http.port</code></td><td><code>PORT</code></td><td>9080</td><td>TCP listening port</td></tr>
+			<tr><td><code>http.secure</code></td><td><code>ENABLE_SSL</code></td><td>false</td><td>Enables HTTPS (uses <code>http.security.*</code>)</td></tr>
+			<tr><td><code>http.corsEnabled</code></td><td>&mdash;</td><td>true</td><td>Enables CORS</td></tr>
+			<tr><td><code>http.supportedLocale</code></td><td>&mdash;</td><td>en-US,en,fr-FR,fr</td><td>Value of the <code>Accept-Language</code> response header</td></tr>
+			<tr><td><code>http.session.name</code></td><td><code>SESSION_COOKIE_NAME</code></td><td>NPA</td><td>Session cookie name</td></tr>
+			<tr><td><code>http.session.expires</code></td><td><code>HTTP_SESSION_TIMEOUT</code></td><td>900</td><td>Session inactivity timeout (seconds)</td></tr>
+			<tr><td><code>http.session.checkperiod</code></td><td><code>HTTP_SESSION_CLEANER_TIMEOUT</code></td><td>120</td><td>Session reaper period (seconds)</td></tr>
+			<tr><td><code>http.session.persistent</code></td><td><code>PERSIST_HTTP_SESSION</code></td><td>false</td><td>Stores sessions in CouchDB (<code>CouchSessionStore</code>)</td></tr>
+		</table>
+
+		<h2>Extension Points</h2>
+
+		<table>
+			<tr><th>Extension point</th><th>Purpose</th><th>Main attributes</th></tr>
+			<tr><td><code>npa.http.router</code></td><td>Mounts an Express router on a path</td><td><code>id</code>, <code>path</code></td></tr>
+			<tr><td><code>npa.http.handler</code></td><td>Adds a GET, POST, PUT or DELETE handler to a router</td><td><code>router</code>, <code>method</code>, <code>schema</code>, <code>handler</code></td></tr>
+			<tr><td><code>npa.http.static</code></td><td>Serves a plugin directory as static content</td><td><code>path</code>, <code>localDir</code></td></tr>
+			<tr><td><code>npa.http.home</code></td><td>Defines the home page redirection for an application</td><td><code>application</code>, <code>uri</code></td></tr>
+			<tr><td><code>npa.http.ws.router</code></td><td>Mounts a WebSocket router on a path</td><td><code>id</code>, <code>path</code></td></tr>
+			<tr><td><code>npa.http.ws.handler</code></td><td>Adds a WebSocket handler to a router</td><td><code>router</code>, <code>schema</code>, <code>handler</code></td></tr>
+		</table>
+
+		<div class="code">
+		&nbsp;1.&nbsp;{<br>
+		&nbsp;2.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"point"</span>: <span style="color:#3469e3;">"npa.http.router"</span>,<br>
+		&nbsp;3.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"my.plugin.router"</span>,<br>
+		&nbsp;4.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"path"</span>: <span style="color:#3469e3;">"/my-api"</span><br>
+		&nbsp;5.&nbsp;},<br>
+		&nbsp;6.&nbsp;{<br>
+		&nbsp;7.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"point"</span>: <span style="color:#3469e3;">"npa.http.handler"</span>,<br>
+		&nbsp;8.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"id"</span>: <span style="color:#3469e3;">"my.plugin.post.handler"</span>,<br>
+		&nbsp;9.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"router"</span>: <span style="color:#3469e3;">"my.plugin.router"</span>,<br>
+		10.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"method"</span>: <span style="color:#3469e3;">"POST"</span>,<br>
+		11.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"schema"</span>: <span style="color:#3469e3;">"/items"</span>,<br>
+		12.&nbsp;&nbsp;&nbsp;<span style="color:#3469e3;">"handler"</span>: <span style="color:#3469e3;">"postItemHandler"</span><br>
+		13.&nbsp;}
+		</div>
+
+		<h2>Runtime Properties and Telemetry</h2>
+		<ul>
+			<li><code>http.service.port</code> &mdash; TCP port of the listener (locked once the listener is started).</li>
+			<li><code>http.service.ssl.enabled</code> &mdash; whether HTTPS is enabled (locked once the listener is started).</li>
+			<li><code>http.session.count</code> &mdash; current number of sessions in the store.</li>
+			<li><code>http.session.authenticated.count</code> &mdash; current number of active (authenticated) sessions.</li>
+			<li>Telemetry dimension <code>http.session</code> &mdash; number of active sessions, sampled every 30 seconds.</li>
+		</ul>
+
+		<h2>Notes</h2>
+		<ul>
+			<li>Body limits are read once, when the plugin starts: a server restart is required after changing a value.</li>
+			<li>The <code>npa.http</code> manifest does not contribute to the documentation collector, because
+			    <b>npa.documentation</b> depends on <b>npa.http</b>. This page is therefore hosted and declared by
+			    <b>npa.documentation</b> (since version 1.0.1).</li>
+			<li>A 413 error received by a client usually means that the body of the request is larger than the limit
+			    configured for its Content-Type: raise the matching limit rather than modifying the code.</li>
+		</ul>
+
+	</body>
+</html>
